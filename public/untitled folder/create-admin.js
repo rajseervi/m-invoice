@@ -5,12 +5,12 @@ const { getAuth, createUserWithEmailAndPassword } = require('firebase/auth');
 
 // Your Firebase config from src/firebase/config.js
 const firebaseConfig = {
-  apiKey: "AIzaSyB93B0rXHI7-HKBDT7R3ro0kQphjYkog4Q",
-    authDomain: "inventory-app-1a59d.firebaseapp.com",
-    projectId: "inventory-app-1a59d",
-    storageBucket: "inventory-app-1a59d.firebasestorage.app",
-    messagingSenderId: "1025045000585",
-    appId: "1:1025045000585:web:de64741f553395bbe6b158"
+  apiKey: "AIzaSyA4FdwLkgOoVnPAKD-Pz9alICw072Mt4a8",
+  authDomain: "studio-164378229-17630.firebaseapp.com",
+  projectId: "studio-164378229-17630",
+  storageBucket: "studio-164378229-17630.firebasestorage.app",
+  messagingSenderId: "214575347397",
+  appId: "1:214575347397:web:c01eb41c353d409d78e2ac"
 };
 
 // Initialize Firebase

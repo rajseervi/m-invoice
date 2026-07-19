@@ -3,12 +3,12 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 const firebaseConfig = {
-apiKey: "AIzaSyDSu1ErMkJneofYcnDZsewCOI076YPtaaQ",
-authDomain: "hanuman-marketing-kothur.firebaseapp.com",
-projectId: "hanuman-marketing-kothur",
- storageBucket: "hanuman-marketing-kothur.firebasestorage.app",
- messagingSenderId: "979647959745",
- appId: "1:979647959745:web:64960d0af04bcc2e95ba40"
+ apiKey: "AIzaSyA4FdwLkgOoVnPAKD-Pz9alICw072Mt4a8",
+  authDomain: "studio-164378229-17630.firebaseapp.com",
+  projectId: "studio-164378229-17630",
+  storageBucket: "studio-164378229-17630.firebasestorage.app",
+  messagingSenderId: "214575347397",
+  appId: "1:214575347397:web:c01eb41c353d409d78e2ac"
 
 };
 
