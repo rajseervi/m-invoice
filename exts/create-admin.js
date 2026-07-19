@@ -19,10 +19,10 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Admin user details - CHANGE THESE VALUES
-const adminEmail = "tulcharamchoudhary930@gmail.com";
-const adminPassword = "Hanuman@1234"; // Use a strong password
-const adminFirstName = "Hanuman";
-const adminLastName = "Marketing";
+const adminEmail = "prc2199@gmail.com";
+const adminPassword = "prc2199@gmail.com"; // Use a strong password
+const adminFirstName = "prc2199@gmail.com";
+const adminLastName = "prc2199@gmail.com";
 
 async function createAdminUser() {
   try {

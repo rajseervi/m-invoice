@@ -1,4 +1,5 @@
     @echo off
-    cd /d "C:\Program Files (x86)\Microsoft\Edge\Application\App"
-    call npm start
+    cd /d "%~dp0"
+    echo Starting WebInvoice...
+    call npm run dev
     pause

@@ -166,4 +166,4 @@ Re-run the index generator when:
 - Adding new filter combinations
 - Optimizing slow queries
 
-Generated on: 2025-08-28T04:39:46.183Z
+Generated on: 2026-07-19T17:58:03.993Z

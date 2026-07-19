@@ -1,0 +1,62 @@
+{
+  "totalIndexes": 191,
+  "indexesByCollection": {
+    "products": 24,
+    "parties": 20,
+    "invoices": 25,
+    "purchases": 20,
+    "orders": 18,
+    "categories": 8,
+    "inventory": 12,
+    "stockMovements": 14,
+    "transactions": 14,
+    "reports": 5,
+    "users": 7,
+    "notifications": 6,
+    "auditLogs": 8,
+    "settings": 5,
+    "backups": 5
+  },
+  "textSearchCollections": [
+    "products",
+    "parties",
+    "invoices",
+    "purchases",
+    "orders",
+    "categories",
+    "inventory",
+    "stockMovements",
+    "transactions",
+    "users"
+  ],
+  "analyticsCollections": [
+    "invoices",
+    "purchases",
+    "orders",
+    "stockMovements",
+    "transactions"
+  ],
+  "geospatialCollections": [
+    "parties",
+    "inventory"
+  ],
+  "pageOptimizations": [
+    "/dashboard",
+    "/products",
+    "/parties",
+    "/invoices",
+    "/purchases",
+    "/orders",
+    "/inventory",
+    "/reports",
+    "/stock-management",
+    "/ledger",
+    "/accounting"
+  ],
+  "generatedAt": "2026-07-19T17:58:05.110Z",
+  "files": {
+    "indexes": "/Users/prakashseervi/Desktop/Projecct for client/webinvoice/generated-indexes/firestore.indexes.json",
+    "searchUtils": "/Users/prakashseervi/Desktop/Projecct for client/webinvoice/generated-indexes/searchUtils.js",
+    "deployScript": "/Users/prakashseervi/Desktop/Projecct for client/webinvoice/generated-indexes/deploy-indexes.sh"
+  }
+}
