@@ -1,0 +1,206 @@
+{
+  "timestamp": "2025-07-28T17:44:24.624Z",
+  "totalPages": 28,
+  "successful": 28,
+  "failed": 0,
+  "alreadyModern": 8,
+  "results": [
+    {
+      "page": "invoices/page.tsx",
+      "title": "Invoices",
+      "category": "sales",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "orders/page.tsx",
+      "title": "Orders",
+      "category": "sales",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "products/page.tsx",
+      "title": "Products",
+      "category": "inventory",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "parties/page.tsx",
+      "title": "Parties",
+      "category": "customers",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "purchases/page.tsx",
+      "title": "Purchase Orders",
+      "category": "purchasing",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "inventory/page.tsx",
+      "title": "Inventory Management",
+      "category": "inventory",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "categories/page.tsx",
+      "title": "Categories",
+      "category": "inventory",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "reports/page.tsx",
+      "title": "Reports & Analytics",
+      "category": "reports",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "invoices/new/page.tsx",
+      "title": "Create Invoice",
+      "category": "sales",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "invoices/gst/page.tsx",
+      "title": "GST Invoices",
+      "category": "sales",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "invoices/regular/page.tsx",
+      "title": "Regular Invoices",
+      "category": "sales",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "orders/new/page.tsx",
+      "title": "Create Order",
+      "category": "sales",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "products/new/page.tsx",
+      "title": "Add Product",
+      "category": "inventory",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "products/management/page.tsx",
+      "title": "Product Management",
+      "category": "inventory",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "parties/new/page.tsx",
+      "title": "Add Party",
+      "category": "customers",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "purchases/new/page.tsx",
+      "title": "Create Purchase Order",
+      "category": "purchasing",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "reports/sales/page.tsx",
+      "title": "Sales Reports",
+      "category": "reports",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "reports/products/page.tsx",
+      "title": "Product Reports",
+      "category": "reports",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "reports/profit-loss/page.tsx",
+      "title": "Profit & Loss",
+      "category": "reports",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "reports/users/page.tsx",
+      "title": "User Reports",
+      "category": "reports",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "settings/page.tsx",
+      "title": "Settings",
+      "category": "system",
+      "success": true,
+      "reason": "Already modernized"
+    },
+    {
+      "page": "backup/page.tsx",
+      "title": "Backup & Restore",
+      "category": "system",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "help-desk/page.tsx",
+      "title": "Help & Support",
+      "category": "system",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "profile/page.tsx",
+      "title": "User Profile",
+      "category": "system",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "ledger/page.tsx",
+      "title": "Ledger",
+      "category": "accounting",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "accounting/page.tsx",
+      "title": "Accounting",
+      "category": "accounting",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "stock-management/page.tsx",
+      "title": "Stock Management",
+      "category": "inventory",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "inventory/alerts/page.tsx",
+      "title": "Inventory Alerts",
+      "category": "inventory",
+      "success": true,
+      "reason": "Successfully migrated"
+    }
+  ],
+  "backupLocation": "/Users/prakashseervi/Desktop/master_app/original-pages-backup"
+}

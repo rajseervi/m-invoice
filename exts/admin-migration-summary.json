@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-07-28T17:56:36.186Z",
+  "totalPages": 6,
+  "successful": 6,
+  "failed": 0,
+  "alreadyModern": 0,
+  "results": [
+    {
+      "page": "admin/page.tsx",
+      "title": "Admin Panel",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "admin/dashboard/page.tsx",
+      "title": "Admin Dashboard",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "admin/users/page.tsx",
+      "title": "User Management",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "admin/roles/page.tsx",
+      "title": "Role Management",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "admin/roles/assign/page.tsx",
+      "title": "Assign Roles",
+      "success": true,
+      "reason": "Successfully migrated"
+    },
+    {
+      "page": "admin/permissions/page.tsx",
+      "title": "Permissions",
+      "success": true,
+      "reason": "Successfully migrated"
+    }
+  ],
+  "backupLocation": "/Users/prakashseervi/Desktop/master_app/admin-pages-backup"
+}

@@ -1,0 +1,16 @@
+import { VisuallyEnhancedDashboardLayout } from '@/components/ModernLayout';
+
+
+
+<VisuallyEnhancedDashboardLayout
+  title="Categories"
+  pageType="reports"
+  enableVisualEffects={true}
+  enableParticles={false}
+  customQuickActions={[
+    { icon: <DownloadIcon />, label: 'Export', onClick: () => {} },
+    { icon: <PrintIcon />, label: 'Print', onClick: () => {} },
+  ]}
+>
+ <OriginalPageComponent />
+</VisuallyEnhancedDashboardLayout>
