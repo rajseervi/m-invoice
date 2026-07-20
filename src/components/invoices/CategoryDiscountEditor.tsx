@@ -9,33 +9,31 @@ import {
   Typography,
   Box,
   TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   IconButton,
   CircularProgress,
   Alert,
   Tooltip,
-  Divider,
-  InputAdornment,
   Chip,
+  Avatar,
+  Fade,
+  InputAdornment,
+  FormControlLabel,
   Switch,
-  FormControlLabel
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
+  Close as CloseIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  CheckCircle as CheckCircleIcon,
+  Percent as PercentIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase/config';
+import { alpha } from '@mui/material/styles';
 
 interface Category {
   id: string;
@@ -57,6 +55,50 @@ interface CategoryDiscountEditorProps {
   onSave: (updatedDiscounts: Record<string, number>) => void;
 }
 
+const palette = {
+  primary: '#2563EB',
+  primaryLight: '#DBEAFE',
+  primaryDark: '#1E40AF',
+  accent: '#F59E0B',
+  accentLight: '#FEF3C7',
+  success: '#10B981',
+  successLight: '#D1FAE5',
+  danger: '#EF4444',
+  dangerLight: '#FEE2E2',
+  surface: '#F8FAFC',
+  surfaceAlt: '#F1F5F9',
+  border: '#E2E8F0',
+  text: '#1E293B',
+  textSecondary: '#64748B',
+  white: '#FFFFFF',
+};
+
+const styles = {
+  input: {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      bgcolor: palette.surface,
+      '& fieldset': { borderColor: palette.border },
+      '&:hover fieldset': { borderColor: palette.primary },
+      '&.Mui-focused fieldset': { borderColor: palette.primary, borderWidth: 2 },
+    },
+  },
+  chip: (bg: string, fg: string) => ({
+    bgcolor: bg, color: fg, fontWeight: 600, borderRadius: 1.5,
+    fontSize: '0.7rem', height: 22, '& .MuiChip-label': { px: 1 },
+  }),
+  btnPrimary: {
+    borderRadius: 2, textTransform: 'none', fontWeight: 700, fontSize: '0.85rem',
+    bgcolor: palette.primary, boxShadow: `0 2px 8px ${alpha(palette.primary, 0.3)}`,
+    '&:hover': { bgcolor: palette.primaryDark, boxShadow: `0 4px 12px ${alpha(palette.primary, 0.4)}` },
+  },
+  btnOutline: {
+    borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: '0.8rem',
+    border: `1.5px solid ${palette.border}`, color: palette.text,
+    '&:hover': { borderColor: palette.primary, bgcolor: palette.primaryLight },
+  },
+};
+
 const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
   open,
   onClose,
@@ -74,69 +116,42 @@ const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
   const [activeDiscountsCount, setActiveDiscountsCount] = useState<number>(0);
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(false);
 
-  // Fetch all categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
         const categoriesCollection = collection(db, 'categories');
         const categoriesSnapshot = await getDocs(categoriesCollection);
-        
         const categoriesList = categoriesSnapshot.docs.map(doc => {
           const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name,
-            defaultDiscount: data.defaultDiscount || 0
-          };
+          return { id: doc.id, name: data.name, defaultDiscount: data.defaultDiscount || 0 };
         });
-        
         setCategories(categoriesList);
-        
-        // Initialize discounts array with current values
-        const discountsList = categoriesList.map(category => {
-          // Check if there's a discount for this category name
-          const discount = categoryDiscounts[category.name] || 0;
-          
-          // Log for debugging
-          console.log(`Loading discount for category "${category.name}": ${discount}%`);
-          
-          return {
-            categoryId: category.id,
-            categoryName: category.name,
-            discount: discount
-          };
-        });
-        
+        const discountsList = categoriesList.map(category => ({
+          categoryId: category.id,
+          categoryName: category.name,
+          discount: categoryDiscounts[category.name] || 0
+        }));
         setDiscounts(discountsList);
         setError(null);
       } catch (err) {
-        console.error('Error fetching categories:', err);
         setError('Failed to load categories. Please try again.');
       } finally {
         setLoading(false);
       }
     };
-    
-    if (open) {
-      fetchCategories();
-    }
+    if (open) fetchCategories();
   }, [open, categoryDiscounts]);
 
-  // Update active discounts count whenever discounts change
   useEffect(() => {
-    const count = discounts.filter(item => item.discount > 0).length;
-    setActiveDiscountsCount(count);
+    setActiveDiscountsCount(discounts.filter(item => item.discount > 0).length);
   }, [discounts]);
 
-  // Create a ref for the input field
   const discountInputRef = React.useRef<HTMLInputElement>(null);
-  
+
   const handleStartEditing = (categoryId: string, currentDiscount: number) => {
     setEditingCategoryId(categoryId);
     setEditValue(currentDiscount);
-    
-    // Focus and select the input field after the state has been updated
     setTimeout(() => {
       if (discountInputRef.current) {
         discountInputRef.current.focus();
@@ -145,53 +160,26 @@ const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
     }, 100);
   };
 
-  const handleCancelEditing = () => {
-    setEditingCategoryId(null);
-    setEditValue(0);
-  };
-
   const handleSaveDiscount = (categoryId: string) => {
-    // Ensure the discount value is valid (between 0 and 100)
     const validDiscount = Math.min(100, Math.max(0, editValue));
-    
-    // Update the discount in the local state
-    setDiscounts(prevDiscounts => 
-      prevDiscounts.map(item => 
-        item.categoryId === categoryId 
-          ? { ...item, discount: validDiscount } 
-          : item
+    setDiscounts(prev =>
+      prev.map(item =>
+        item.categoryId === categoryId ? { ...item, discount: validDiscount } : item
       )
     );
-    
-    // Log for debugging
-    const categoryName = discounts.find(item => item.categoryId === categoryId)?.categoryName || '';
-    console.log(`Saving discount for category "${categoryName}" (ID: ${categoryId}): ${validDiscount}%`);
-    
     setEditingCategoryId(null);
   };
 
   const handleSaveAllDiscounts = () => {
-    // Convert discounts array to the expected format
     const updatedDiscounts: Record<string, number> = {};
-    
     discounts.forEach(item => {
-      // Save all discounts, including 0% discounts (to properly reset them)
-      // Use category name as the key instead of category ID
       updatedDiscounts[item.categoryName] = item.discount;
-      
-      // Log for debugging
-      console.log(`Setting discount for category "${item.categoryName}": ${item.discount}%`);
     });
-    
-    // Log the final discount object
-    console.log('Final category discounts:', updatedDiscounts);
-    
     onSave(updatedDiscounts);
     onClose();
   };
 
   const handleResetToDefaults = () => {
-    // Reset to default discounts from categories
     setDiscounts(
       categories.map(category => ({
         categoryId: category.id,
@@ -202,7 +190,6 @@ const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
   };
 
   const handleClearAllDiscounts = () => {
-    // Clear all discounts (set all to 0%)
     setDiscounts(
       categories.map(category => ({
         categoryId: category.id,
@@ -211,323 +198,241 @@ const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
       }))
     );
   };
-  
-  // Filter discounts based on search query and active filter
-  const filteredDiscounts = discounts.filter(item => {
-    // First check if we should only show active discounts
-    if (showOnlyActive && item.discount <= 0) {
-      return false;
-    }
-    
-    // Then check if it matches the search query
-    return searchQuery === '' || 
-      item.categoryName.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-  
-  // Handle search query change
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
-  
-  // Clear search query
-  const handleClearSearch = () => {
-    setSearchQuery('');
-  };
-  
-  // Toggle showing only active discounts
-  const handleToggleShowOnlyActive = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setShowOnlyActive(event.target.checked);
-  };
-  
-  // Function to highlight matching text in search results
-  const highlightMatchingText = (text: string, query: string) => {
-    if (!query) return text;
-    
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    
-    return (
-      <>
-        {parts.map((part, index) => 
-          part.toLowerCase() === query.toLowerCase() ? (
-            <Box 
-              component="span" 
-              key={index} 
-              sx={{ 
-                backgroundColor: 'primary.light', 
-                color: 'primary.contrastText',
-                px: 0.5,
-                borderRadius: 0.5,
-                fontWeight: 'medium'
-              }}
-            >
-              {part}
-            </Box>
-          ) : (
-            part
-          )
-        )}
-      </>
-    );
-  };
 
-  // Handle keyboard shortcuts
-  const handleDialogKeyDown = (event: React.KeyboardEvent) => {
-    // Ctrl+F or Command+F to focus search
-    if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
-      event.preventDefault();
-      const searchInput = document.getElementById('category-search-input');
-      if (searchInput) {
-        searchInput.focus();
-      }
-    }
-    
-    // Escape to clear search if search is focused and has content
-    if (event.key === 'Escape' && searchQuery && document.activeElement?.id === 'category-search-input') {
-      event.preventDefault();
-      setSearchQuery('');
-    }
-  };
+  const filteredDiscounts = discounts.filter(item => {
+    if (showOnlyActive && item.discount <= 0) return false;
+    return searchQuery === '' || item.categoryName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      onKeyDown={handleDialogKeyDown}
+      fullScreen={true}
+      PaperProps={{
+        sx: {
+          borderRadius: { xs: 0, sm: 3 },
+          maxWidth: { sm: 560 },
+          mx: 'auto',
+          bgcolor: palette.surface,
+        }
+      }}
     >
-      <DialogTitle>
-        <Typography variant="h6">Edit Category Discounts</Typography>
-      </DialogTitle>
-      
-      <DialogContent>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Set discount percentages for each product category. These discounts will be applied to all products in the respective categories for this invoice.
+      {/* Header */}
+      <Box sx={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        px: 2, py: 1.5, borderBottom: `1px solid ${palette.border}`,
+        bgcolor: palette.white,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: palette.primaryLight }}>
+            <PercentIcon sx={{ fontSize: 20, color: palette.primary }} />
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle1" fontWeight={800} color={palette.text} lineHeight={1.2}>
+              Category Discounts
+            </Typography>
+            <Typography variant="caption" color={palette.textSecondary}>
+              {activeDiscountsCount} active
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={onClose} sx={{ color: palette.textSecondary }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      <DialogContent sx={{ p: 2, bgcolor: palette.surface }}>
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+
+        <Typography variant="body2" color={palette.textSecondary} sx={{ mb: 2 }}>
+          Set discount percentages for each category. These will apply to all products in that category for this party.
         </Typography>
-        
-        {/* Search and Active Discounts Summary */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Tooltip title="Press Ctrl+F or ⌘+F to search">
-            <TextField
-              id="category-search-input"
-              placeholder="Search categories... (Ctrl+F)"
-              size="small"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              sx={{ width: '300px' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery && (
-                  <InputAdornment position="end">
-                    <IconButton 
-                      size="small" 
-                      onClick={handleClearSearch}
-                      edge="end"
-                      aria-label="clear search"
-                    >
-                      <ClearIcon fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Tooltip>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+        {/* Search & Filters */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+          <TextField
+            id="category-search-input"
+            placeholder="Search categories..."
+            size="small"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            fullWidth
+            sx={styles.input}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18, color: palette.textSecondary }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery('')} edge="end">
+                    <ClearIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <FormControlLabel
               control={
-                <Switch 
-                  size="small" 
+                <Switch
+                  size="small"
                   checked={showOnlyActive}
-                  onChange={handleToggleShowOnlyActive}
+                  onChange={(e) => setShowOnlyActive(e.target.checked)}
                   color="primary"
                 />
               }
-              label={
-                <Typography variant="body2">
-                  Show active only
-                </Typography>
-              }
-              sx={{ mr: 1 }}
+              label={<Typography variant="caption" color={palette.textSecondary}>Active only</Typography>}
             />
-            
-            <Chip 
-              label={`${activeDiscountsCount} Active Discount${activeDiscountsCount !== 1 ? 's' : ''}`}
-              color="primary"
-              variant={activeDiscountsCount > 0 ? "default" : "outlined"}
-              size="small"
-            />
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Button size="small" variant="outlined" onClick={handleClearAllDiscounts}
+                sx={{ ...styles.btnOutline, fontSize: '0.65rem', py: 0.3, px: 1.2 }}>
+                Clear All
+              </Button>
+              <Button size="small" variant="outlined" onClick={handleResetToDefaults}
+                sx={{ ...styles.btnOutline, fontSize: '0.65rem', py: 0.3, px: 1.2 }}>
+                <RefreshIcon sx={{ fontSize: 14, mr: 0.3 }} /> Reset
+              </Button>
+            </Box>
           </Box>
         </Box>
-        
+
+        {/* Category Cards */}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}>
             <CircularProgress />
           </Box>
+        ) : filteredDiscounts.length === 0 ? (
+          <Box sx={{
+            textAlign: 'center', py: 6, border: `2px dashed ${palette.border}`,
+            borderRadius: 3, bgcolor: palette.white,
+          }}>
+            <CategoryIcon sx={{ fontSize: 48, color: palette.border, mb: 1 }} />
+            <Typography variant="body2" fontWeight={600} color={palette.textSecondary}>
+              {searchQuery ? `No categories matching "${searchQuery}"` : 'No categories found'}
+            </Typography>
+            <Typography variant="caption" color={palette.textSecondary}>
+              {showOnlyActive && !searchQuery ? 'Enable a discount to see it here' : 'Try a different search'}
+            </Typography>
+          </Box>
         ) : (
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Category</TableCell>
-                  <TableCell align="right">Discount (%)</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredDiscounts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                        {searchQuery !== '' && showOnlyActive ? (
-                          <>No active categories found matching "{searchQuery}"</>
-                        ) : searchQuery !== '' ? (
-                          <>No categories found matching "{searchQuery}"</>
-                        ) : showOnlyActive ? (
-                          <>No active discounts found. Set discounts for categories to see them here.</>
-                        ) : (
-                          <>No categories found</>
-                        )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {filteredDiscounts.map((item, idx) => {
+              const isEditing = editingCategoryId === item.categoryId;
+              const isActive = item.discount > 0;
+              const bgColor = isEditing
+                ? palette.primaryLight
+                : isActive
+                  ? palette.successLight
+                  : palette.white;
+
+              return (
+                <Fade in key={item.categoryId} timeout={200 + idx * 30}>
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                    p: 1.5, borderRadius: 2.5,
+                    bgcolor: bgColor,
+                    border: `1px solid ${isEditing ? palette.primary : isActive ? palette.success : palette.border}`,
+                    transition: 'all 0.2s',
+                  }}>
+                    {/* Category avatar */}
+                    <Avatar sx={{
+                      width: 36, height: 36, fontSize: '0.85rem', fontWeight: 700,
+                      bgcolor: isActive ? palette.successLight : palette.surfaceAlt,
+                      color: isActive ? palette.success : palette.textSecondary,
+                    }}>
+                      {item.categoryName.charAt(0).toUpperCase()}
+                    </Avatar>
+
+                    {/* Name */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight={700} color={palette.text}
+                        sx={{ wordBreak: 'break-word' }}>
+                        {item.categoryName}
                       </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredDiscounts.map((item) => (
-                  <TableRow key={item.categoryId}>
-                    <TableCell>
-                      {searchQuery ? (
-                        // Highlight the matching text
-                        highlightMatchingText(item.categoryName, searchQuery)
-                      ) : (
-                        item.categoryName
+                      {isActive && !isEditing && (
+                        <Chip
+                          icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+                          label={`${item.discount}% off`}
+                          size="small"
+                          sx={styles.chip(palette.successLight, palette.success)}
+                        />
                       )}
-                    </TableCell>
-                    <TableCell align="right">
-                      {editingCategoryId === item.categoryId ? (
+                    </Box>
+
+                    {/* Discount input or value */}
+                    {isEditing ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <TextField
                           type="number"
                           size="small"
                           value={editValue}
                           onChange={(e) => {
-                            // Parse the value, default to 0 if empty or NaN
                             let value = Number(e.target.value);
                             if (isNaN(value)) value = 0;
-                            
-                            // Ensure value is between 0 and 100
                             value = Math.min(100, Math.max(0, value));
-                            
                             setEditValue(value);
                           }}
-                          onFocus={(e) => e.target.select()} // Select all text when focused
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSaveDiscount(item.categoryId);
-                            } else if (e.key === 'Escape') {
-                              handleCancelEditing();
-                            }
+                            if (e.key === 'Enter') handleSaveDiscount(item.categoryId);
+                            if (e.key === 'Escape') setEditingCategoryId(null);
                           }}
-                          inputProps={{ 
-                            min: 0, 
-                            max: 100, 
-                            step: 0.5,
-                            // Add aria-label for accessibility
-                            'aria-label': `Discount percentage for ${item.categoryName}`
-                          }}
-                          sx={{ width: 100 }}
+                          inputProps={{ min: 0, max: 100, step: 0.5 }}
+                          sx={{ width: 80, ...styles.input }}
                           inputRef={discountInputRef}
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end" sx={{ '& p': { fontSize: '0.75rem' } }}>%</InputAdornment>,
+                          }}
+                          autoFocus
                         />
-                      ) : (
-                        <Typography 
-                          variant="body2" 
-                          color={item.discount > 0 ? 'primary.main' : 'text.secondary'}
-                          fontWeight={item.discount > 0 ? 'medium' : 'normal'}
+                        <IconButton size="small" onClick={() => handleSaveDiscount(item.categoryId)}
+                          sx={{ bgcolor: palette.success, color: palette.white, '&:hover': { bgcolor: '#059669' }, borderRadius: 1.5, width: 30, height: 30 }}>
+                          <CheckCircleIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          color={isActive ? palette.success : palette.textSecondary}
+                          sx={{ minWidth: 40, textAlign: 'right' }}
                         >
                           {item.discount}%
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      {editingCategoryId === item.categoryId ? (
-                        <Box>
-                          <IconButton 
-                            size="small" 
-                            color="primary"
-                            onClick={() => handleSaveDiscount(item.categoryId)}
-                          >
-                            <SaveIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            onClick={handleCancelEditing}
-                          >
-                            <CancelIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ) : (
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleStartEditing(item.categoryId, item.discount)}
-                        >
-                          <EditIcon fontSize="small" />
+                        <IconButton size="small" onClick={() => handleStartEditing(item.categoryId, item.discount)}
+                          sx={{ bgcolor: palette.surface, '&:hover': { bgcolor: palette.primaryLight, color: palette.primary }, borderRadius: 1.5, width: 30, height: 30 }}>
+                          <EditIcon sx={{ fontSize: 16 }} />
                         </IconButton>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {/* We don't need this anymore since we handle all empty states above */}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      </Box>
+                    )}
+                  </Box>
+                </Fade>
+              );
+            })}
+          </Box>
         )}
-        
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <Tooltip title="Clear all discounts (set all to 0%)">
-            <Button 
-              startIcon={<ClearIcon />} 
-              onClick={handleClearAllDiscounts}
-              size="small"
-              color="error"
-              variant="outlined"
-            >
-              Clear All
-            </Button>
-          </Tooltip>
-          <Tooltip title="Reset to default category discounts">
-            <Button 
-              startIcon={<RefreshIcon />} 
-              onClick={handleResetToDefaults}
-              size="small"
-            >
-              Reset to Defaults
-            </Button>
-          </Tooltip>
-        </Box>
       </DialogContent>
-      
-      <Divider />
-      
-      <DialogActions>
-        <Button onClick={onClose} color="inherit">
+
+      {/* Sticky Footer */}
+      <Box sx={{
+        position: 'sticky', bottom: 0, left: 0, right: 0,
+        bgcolor: palette.white, borderTop: `1px solid ${palette.border}`,
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
+        px: 2, py: 1.5,
+        display: 'flex', gap: 1.5,
+      }}>
+        <Button onClick={onClose} fullWidth sx={{ ...styles.btnOutline, py: 1.2, fontSize: '0.85rem' }}>
           Cancel
         </Button>
-        <Button 
-          onClick={handleSaveAllDiscounts} 
-          variant="contained"
+        <Button onClick={handleSaveAllDiscounts} variant="contained" fullWidth
           disabled={loading}
-        >
+          sx={{ ...styles.btnPrimary, py: 1.2, fontSize: '0.85rem' }}>
           Apply Discounts
         </Button>
-      </DialogActions>
+      </Box>
     </Dialog>
   );
 };
