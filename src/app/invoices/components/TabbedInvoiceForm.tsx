@@ -2401,44 +2401,41 @@ function a11yProps(index: number) {
                 </Button>
               </Box>
               
-              {!isQuickCreateMode && (
-                <>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1, 
-                    p: 1, 
-                    border: '1px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1
-                  }}>
-                    <Checkbox
-                      checked={useCustomCategory}
-                      onChange={(e) => {
-                        setUseCustomCategory(e.target.checked);
-                        console.log('Custom category checkbox changed:', e.target.checked);
-                      }}
-                      id="use-custom-category"
-                      color="primary"
-                    />
-                    <Typography component="label" htmlFor="use-custom-category" sx={{ fontWeight: useCustomCategory ? 'bold' : 'normal' }}>
-                      Enter a custom category instead
-                    </Typography>
-                  </Box>
-                  
-                  {useCustomCategory && (
-                    <TextField
-                      label="Custom Category"
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      fullWidth
-                      required
-                      error={!customCategory.trim() && creatingProduct}
-                      helperText={!customCategory.trim() && creatingProduct ? "Custom category is required" : ""}
-                      placeholder="e.g., Electronics, Clothing, etc."
-                    />
-                  )}
-                </>
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1,
+                border: '1px dashed',
+                borderColor: 'divider',
+                borderRadius: 1
+              }}>
+                <Checkbox
+                  checked={useCustomCategory}
+                  onChange={(e) => {
+                    setUseCustomCategory(e.target.checked);
+                    console.log('Custom category checkbox changed:', e.target.checked);
+                  }}
+                  id="use-custom-category"
+                  color="primary"
+                />
+                <Typography component="label" htmlFor="use-custom-category" sx={{ fontWeight: useCustomCategory ? 'bold' : 'normal' }}>
+                  Enter a custom category instead
+                </Typography>
+              </Box>
+
+              {useCustomCategory && (
+                <TextField
+                  label="Custom Category"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  fullWidth
+                  required
+                  autoFocus
+                  error={!customCategory.trim() && creatingProduct}
+                  helperText={!customCategory.trim() && creatingProduct ? "Custom category is required" : "Category will be created if it doesn't exist"}
+                  placeholder="e.g., Electronics, Clothing, etc."
+                />
               )}
             </Box>
           </Box>

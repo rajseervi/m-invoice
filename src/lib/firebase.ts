@@ -1,17 +1,18 @@
-import { initializeApp } from 'firebase/app';
+import { getApps, initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 const firebaseConfig = {
- apiKey: "AIzaSyA4FdwLkgOoVnPAKD-Pz9alICw072Mt4a8",
-  authDomain: "studio-164378229-17630.firebaseapp.com",
-  projectId: "studio-164378229-17630",
-  storageBucket: "studio-164378229-17630.firebasestorage.app",
-  messagingSenderId: "214575347397",
-  appId: "1:214575347397:web:c01eb41c353d409d78e2ac"
+ apiKey: "AIzaSyC3L0RThSlzlevakOmpOyf66_bZJ-Pkrco",
+  authDomain: "anutecdmindia.firebaseapp.com",
+  projectId: "anutecdmindia",
+  storageBucket: "anutecdmindia.firebasestorage.app",
+  messagingSenderId: "490380975464",
+  appId: "1:490380975464:web:405bd931a3d63876828add"
 };
 
-const app = initializeApp(firebaseConfig);
+// Reuse existing app instance if already initialized by firebase/config.ts
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 

@@ -4,7 +4,7 @@ import {
   Box, Typography, TextField, Button, Paper, IconButton,
   CircularProgress, Alert, Snackbar, Chip, Divider,
   Autocomplete, Dialog, DialogTitle, DialogContent, DialogActions,
-  Badge, Tooltip, Card, CardContent, Zoom, Fade, Grow, Avatar,
+  Badge, Card, CardContent, Zoom, Fade, Grow, Avatar,
   InputAdornment,
 } from '@mui/material';
 import {
@@ -19,7 +19,6 @@ import {
   Note as NoteIcon,
   Inventory2 as InventoryIcon,
   Store as StoreIcon,
-  TrendingUp as TrendingUpIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
@@ -34,7 +33,6 @@ import { useProducts } from '@/app/hooks/useProducts';
 import { useCategories } from '@/app/hooks/useCategories';
 import { useCurrentUser } from '@/app/hooks/useCurrentUser';
 import CategoryDiscountEditor from '@/components/invoices/CategoryDiscountEditor';
-import LineItemDiscountEditor from '@/components/invoices/LineItemDiscountEditor';
 import CentralizedInvoiceService from '@/services/centralizedInvoiceService';
 import StockValidationConfigService from '@/services/stockValidationConfig';
 import { useRouter } from 'next/navigation';
@@ -50,7 +48,7 @@ interface InvoiceLineItem {
   productId: string; name: string; description?: string;
   quantity: number; price: number; category: string;
   discount: number; discountType: 'none' | 'category' | 'product' | 'custom';
-  finalPrice: number; gstRate?: number; margin?: number;
+  finalPrice: number;
 }
 
 interface MobileInvoiceFormProps {
@@ -142,12 +140,10 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
   const [openPartyDialog, setOpenPartyDialog] = useState(false);
   const [newParty, setNewParty] = useState({
     name: '', email: '', phone: '', address: '',
-    categoryDiscounts: {} as Record<string, number>,
-    productDiscounts: {} as Record<string, number>
   });
   const [creatingParty, setCreatingParty] = useState(false);
+
   const [openCategoryDiscountEditor, setOpenCategoryDiscountEditor] = useState(false);
-  const [openNewPartyCategoryDiscountEditor, setOpenNewPartyCategoryDiscountEditor] = useState(false);
 
   const [openProductDialog, setOpenProductDialog] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
@@ -196,31 +192,40 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
     generateInvoiceNumber();
   }, [invoiceId]);
 
-  // Discount calculation
+  // Discount calculation - applies party category discounts
   const calculateItemDiscounts = useCallback((item: InvoiceLineItem, party: Party | null) => {
     if (!party) return item;
-    if (item.discountType === 'custom') {
-      return { ...item, finalPrice: parseFloat((item.price * (1 - item.discount/100) * item.quantity).toFixed(2)) };
-    }
     const product = products.find(p => p.id === item.productId);
     if (!product) return item;
     const catDiscount = party.categoryDiscounts[product.category] || 0;
-    const prodDiscount = party.productDiscounts?.[item.productId] || 0;
-    let discount = 0;
-    let discountType: 'none' | 'category' | 'product' | 'custom' = 'none';
-    if (prodDiscount > 0) { discount = prodDiscount; discountType = 'product'; }
-    else if (catDiscount > 0) { discount = catDiscount; discountType = 'category'; }
-    return { ...item, discount, discountType, finalPrice: parseFloat((item.price * (1 - discount/100) * item.quantity).toFixed(2)) };
+    const discount = catDiscount;
+    const discountType = discount > 0 ? 'category' as const : 'none' as const;
+    return {
+      ...item,
+      discount,
+      discountType,
+      finalPrice: parseFloat((item.price * (1 - discount / 100) * item.quantity).toFixed(2)),
+    };
   }, [products]);
 
+  // Recalculate when party changes
   useEffect(() => {
-    if (!selectedParty) return;
+    if (!selectedParty) {
+      // No party: reset all discounts
+      setLineItems(prev => prev.map(item => ({
+        ...item,
+        discount: 0,
+        discountType: 'none' as const,
+        finalPrice: parseFloat((item.price * item.quantity).toFixed(2)),
+      })));
+      return;
+    }
     setLineItems(prev => prev.map(item => calculateItemDiscounts(item, selectedParty)));
   }, [selectedPartyId, calculateItemDiscounts]);
 
   const qtyInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Add product (prepend) — now with explicit qty flow
+  // Add product — with explicit qty flow
   const handleAddProduct = () => {
     if (!selectedProductId) return;
     if (lineItems.length >= 25) { setWarningMessage('Max 25 items per invoice'); return; }
@@ -230,17 +235,14 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
     let discountType: 'none' | 'category' | 'product' | 'custom' = 'none';
     if (selectedParty) {
       const cd = selectedParty.categoryDiscounts[product.category] || 0;
-      const pd = selectedParty.productDiscounts?.[product.id] || 0;
-      if (pd > 0) { discount = pd; discountType = 'product'; }
-      else if (cd > 0) { discount = cd; discountType = 'category'; }
+      if (cd > 0) { discount = cd; discountType = 'category'; }
     }
     const newItem: InvoiceLineItem = {
       productId: product.id, name: product.name, quantity: 1,
       price: product.price, category: product.category || '',
       discount, discountType,
-      finalPrice: parseFloat((product.price * (1 - discount/100)).toFixed(2))
+      finalPrice: parseFloat((product.price * (1 - discount / 100)).toFixed(2)),
     };
-    // Show qty prompt instead of directly adding
     setPendingQtyProduct(newItem);
     setPendingQty(1);
     setProductSearchOpen(false);
@@ -263,7 +265,6 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
     setPendingQtyProduct(null);
     setPendingQty(1);
     setSelectedProductId('');
-    // Refocus product search
     setTimeout(() => {
       const input = document.querySelector<HTMLInputElement>('#product-search-input');
       if (input) input.focus();
@@ -278,43 +279,60 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
   };
 
   const handleUpdateQuantity = (index: number, qty: number) =>
-    setLineItems(prev => prev.map((item, i) => i === index ? calculateItemDiscounts({ ...item, quantity: Math.max(1, qty) }, selectedParty) : item));
+    setLineItems(prev => prev.map((item, i) => i === index
+      ? calculateItemDiscounts({ ...item, quantity: Math.max(1, qty) }, selectedParty)
+      : item));
 
   const handleUpdatePrice = (index: number, price: number) =>
-    setLineItems(prev => prev.map((item, i) => i === index ? calculateItemDiscounts({ ...item, price: Math.max(0, price) }, selectedParty) : item));
+    setLineItems(prev => prev.map((item, i) => i === index
+      ? calculateItemDiscounts({ ...item, price: Math.max(0, price) }, selectedParty)
+      : item));
 
   const handleRemoveItem = (index: number) => setLineItems(prev => prev.filter((_, i) => i !== index));
 
-  const handleUpdateLineItemDiscount = (index: number, discount: number, discountType: 'none' | 'category' | 'product' | 'custom') =>
-    setLineItems(prev => prev.map((item, i) => i !== index ? item : { ...item, discount, discountType, finalPrice: parseFloat((item.price * (1 - discount/100) * item.quantity).toFixed(2)) }));
-
   const handleUpdateCategoryDiscounts = async (updatedDiscounts: Record<string, number>) => {
     if (!selectedParty) return;
+    // Apply changes locally first (immediate feedback for current session)
+    const idx = parties.findIndex(p => p.id === selectedParty.id);
+    if (idx !== -1) {
+      parties[idx] = { ...selectedParty, categoryDiscounts: updatedDiscounts };
+    }
+    setLineItems(prev => prev.map(item => {
+      const product = products.find(p => p.id === item.productId);
+      if (product && updatedDiscounts.hasOwnProperty(product.category)) {
+        const d = updatedDiscounts[product.category];
+        return {
+          ...item, discount: d, discountType: 'category' as const,
+          finalPrice: parseFloat((item.price * (1 - d / 100) * item.quantity).toFixed(2)),
+        };
+      }
+      return {
+        ...item, discount: 0, discountType: 'none' as const,
+        finalPrice: parseFloat((item.price * item.quantity).toFixed(2)),
+      };
+    }));
+    setSuccessMessage('Discounts applied');
+    // Try Firestore persistence — non-blocking
     try {
       setLoading(true);
-      await firestoreUpdateDoc(firestoreDoc(db, 'parties', selectedParty.id), { categoryDiscounts: updatedDiscounts, updatedAt: new Date().toISOString() });
-      const idx = parties.findIndex(p => p.id === selectedParty.id);
-      if (idx !== -1) parties[idx] = { ...selectedParty, categoryDiscounts: updatedDiscounts };
-      setLineItems(prev => prev.map(item => {
-        if (item.discountType === 'custom') return item;
-        const product = products.find(p => p.id === item.productId);
-        if (product && updatedDiscounts.hasOwnProperty(product.category)) {
-          const d = updatedDiscounts[product.category];
-          return { ...item, discount: d, discountType: 'category' as const, finalPrice: parseFloat((item.price * (1 - d/100) * item.quantity).toFixed(2)) };
-        }
-        return calculateItemDiscounts(item, { ...selectedParty, categoryDiscounts: updatedDiscounts });
-      }));
-      setSuccessMessage('Category discounts updated');
-    } catch { setError('Failed to update discounts'); }
-    finally { setLoading(false); }
+      await firestoreUpdateDoc(firestoreDoc(db, 'parties', selectedParty.id), {
+        categoryDiscounts: updatedDiscounts,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch {
+      // Persistence failed, but local changes are applied — show warning
+      setWarningMessage('Discounts applied for this session only (sync failed)');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateParty = async () => {
     if (!newParty.name) { setError('Party name is required'); return; }
     try {
       setCreatingParty(true);
-      const partyRef = await executeWithRetry(async () => addDoc(collection(db, 'parties'), { ...newParty, createdAt: serverTimestamp() }), 3);
-      parties.push({ ...newParty, id: partyRef.id });
+      const partyRef = await executeWithRetry(async () => addDoc(collection(db, 'parties'), { ...newParty, categoryDiscounts: {}, productDiscounts: {}, createdAt: serverTimestamp() }), 3);
+      parties.push({ ...newParty, id: partyRef.id, categoryDiscounts: {}, productDiscounts: {} });
       setSelectedPartyId(partyRef.id);
       setOpenPartyDialog(false);
       setSuccessMessage('Party created');
@@ -330,9 +348,13 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
       const finalCategory = useCustomCategory ? customCategory.trim() : newProductCategory;
       const productRef = await executeWithRetry(async () => addDoc(collection(db, 'products'), { name: newProductName.trim(), price: newProductPrice, category: finalCategory, categoryName: finalCategory, quantity: newProductStock, stock: newProductStock, isActive: true, gstRate: 18, unitOfMeasurement: 'PCS', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }), 3);
       products.push({ id: productRef.id, name: newProductName.trim(), price: newProductPrice, category: finalCategory });
-      let discount = 0, discountType: 'none' | 'category' | 'product' | 'custom' = 'none';
-      if (selectedParty && finalCategory) { const cd = selectedParty.categoryDiscounts[finalCategory] || 0; if (cd > 0) { discount = cd; discountType = 'category'; } }
-      setLineItems(prev => [{ productId: productRef.id, name: newProductName.trim(), quantity: 1, price: newProductPrice, category: finalCategory, discount, discountType, finalPrice: parseFloat((newProductPrice * (1 - discount/100)).toFixed(2)) }, ...prev]);
+      let discount = 0;
+      let discountType: 'none' | 'category' | 'product' | 'custom' = 'none';
+      if (selectedParty && finalCategory) {
+        const cd = selectedParty.categoryDiscounts[finalCategory] || 0;
+        if (cd > 0) { discount = cd; discountType = 'category'; }
+      }
+      setLineItems(prev => [{ productId: productRef.id, name: newProductName.trim(), quantity: 1, price: newProductPrice, category: finalCategory, discount, discountType, finalPrice: parseFloat((newProductPrice * (1 - discount / 100)).toFixed(2)) }, ...prev]);
       setOpenProductDialog(false);
       setSuccessMessage('Product created & added');
     } catch (err) { setError(getFirestoreErrorMessage(err)); }
@@ -348,7 +370,22 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
     setLoading(true);
     setError(null);
     try {
-      const invoiceData: any = { invoiceNumber, date: invoiceDate, partyId: selectedParty?.id || '', partyName: selectedParty?.name || '', partyAddress: selectedParty?.address || '', partyEmail: selectedParty?.email || '', partyPhone: selectedParty?.phone || '', partyGstin: (selectedParty as any)?.gstin || '', userId: userId || 'default-user', type: 'sales', items: lineItems.map(item => ({ productId: item.productId, name: item.name, description: item.description || '', quantity: item.quantity, price: item.price, discount: item.discount, discountType: item.discountType, finalPrice: item.finalPrice, category: item.category })), subtotal, discount: discountAmount, total, transportCharges, notes, categoryDiscounts: selectedParty?.categoryDiscounts || {}, isGstInvoice: false, stockUpdated: false };
+      const invoiceData: any = {
+        invoiceNumber, date: invoiceDate,
+        partyId: selectedParty?.id || '', partyName: selectedParty?.name || '',
+        partyAddress: selectedParty?.address || '', partyEmail: selectedParty?.email || '',
+        partyPhone: selectedParty?.phone || '', partyGstin: (selectedParty as any)?.gstin || '',
+        userId: userId || 'default-user', type: 'sales',
+        items: lineItems.map(item => ({
+          productId: item.productId, name: item.name,
+          description: item.description || '', quantity: item.quantity,
+          price: item.price, discount: item.discount, discountType: item.discountType,
+          finalPrice: item.finalPrice, category: item.category
+        })),
+        subtotal, discount: discountAmount, total, transportCharges, notes,
+        categoryDiscounts: selectedParty?.categoryDiscounts || {},
+        isGstInvoice: false, stockUpdated: false
+      };
       const stockConfig = StockValidationConfigService.getConfigForInvoiceType('sales');
       const createResult = await CentralizedInvoiceService.createInvoice(invoiceData, stockConfig);
       if (!createResult.success) { setError(createResult.blockingErrors?.join('\n') || createResult.errors?.join(', ') || 'Failed'); return; }
@@ -418,16 +455,15 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
               <Box sx={{ mt: 2, p: 1.5, bgcolor: palette.surfaceAlt, borderRadius: 2, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Typography variant="body2" fontWeight={700} color={palette.text}>{selectedParty.name}</Typography>
                 {selectedParty.phone && <Chip icon={<PersonIcon sx={{ fontSize: 14 }} />} label={selectedParty.phone} size="small" variant="outlined" sx={{ borderRadius: 1.5 }} />}
-                {Object.keys(selectedParty.categoryDiscounts).length > 0 && (
-                  <Badge badgeContent={Object.keys(selectedParty.categoryDiscounts).length} color="primary" sx={{ '& .MuiBadge-badge': { fontSize: 10, height: 16, minWidth: 16 } }}>
-                    <Button size="small" variant="outlined" onClick={() => setOpenCategoryDiscountEditor(true)} sx={{ ...styles.btnOutline, fontSize: '0.7rem', py: 0.3 }}>
-                      <PercentIcon sx={{ fontSize: 16, mr: 0.3 }} /> Discounts
-                    </Button>
-                  </Badge>
-                )}
+                <Badge badgeContent={Object.keys(selectedParty.categoryDiscounts).filter(k => selectedParty.categoryDiscounts[k] > 0).length} color="primary" sx={{ '& .MuiBadge-badge': { fontSize: 10, height: 16, minWidth: 16 } }}>
+                  <Button size="small" variant="outlined" onClick={() => setOpenCategoryDiscountEditor(true)} sx={{ ...styles.btnOutline, fontSize: '0.7rem', py: 0.3 }}>
+                    <PercentIcon sx={{ fontSize: 16, mr: 0.3 }} /> Discounts
+                  </Button>
+                </Badge>
               </Box>
             </Fade>
           )}
+          {/* Active discount chips */}
           {selectedParty && Object.keys(selectedParty.categoryDiscounts).filter(k => selectedParty.categoryDiscounts[k] > 0).length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1.5 }}>
               {Object.entries(selectedParty.categoryDiscounts).map(([cat, d]) => d > 0 && (
@@ -538,8 +574,6 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
         <Box sx={{ px: 1.5 }}>
           {lineItems.map((item, index) => {
             const product = products.find(p => p.id === item.productId);
-            const catDiscount = selectedParty?.categoryDiscounts[product?.category || ''] || 0;
-            const prodDiscount = selectedParty?.productDiscounts?.[item.productId] || 0;
             const bgColor = index % 2 === 0 ? palette.white : palette.surfaceAlt;
             return (
               <Grow in key={`${item.productId}-${index}`} timeout={200 + index * 50}>
@@ -569,7 +603,7 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
                       </IconButton>
                     </Box>
 
-                    {/* Price + Qty + Discount row */}
+                    {/* Price + Qty row */}
                     <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
                       <TextField type="number" size="small" label="Price" value={item.price}
                         onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
@@ -582,23 +616,17 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
                         inputProps={{ min: 1 }} sx={{ width: 80, ...styles.input }}
                         InputLabelProps={{ shrink: true, sx: { fontSize: '0.75rem' } }}
                       />
-                      <Box sx={{ flex: 1, minWidth: 120 }}>
-                        <LineItemDiscountEditor discount={item.discount} discountType={item.discountType}
-                          categoryDiscount={catDiscount} productDiscount={prodDiscount}
-                          onSave={(d, dt) => handleUpdateLineItemDiscount(index, d, dt)} />
-                      </Box>
                     </Box>
 
                     {/* Bottom: discount badge + total */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                      <Box>
                         {item.discount > 0 && (
-                          <Chip icon={<TrendingUpIcon sx={{ fontSize: 14 }} />}
+                          <Chip
                             label={`${item.discount}% off`} size="small"
-                            sx={styles.chip(palette.successLight, palette.success)} />
+                            sx={styles.chip(palette.successLight, palette.success)}
+                          />
                         )}
-                        {item.discountType === 'custom' && <Chip label="Custom" size="small" variant="outlined" sx={{ borderRadius: 1.5, height: 22, fontSize: '0.65rem' }} />}
-                        {item.discountType === 'category' && <Chip label="Category" size="small" variant="outlined" sx={{ borderRadius: 1.5, height: 22, fontSize: '0.65rem' }} />}
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="caption" color={palette.textSecondary}>
@@ -712,14 +740,6 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
             <TextField label="Phone" value={newParty.phone} onChange={e => setNewParty(p => ({ ...p, phone: e.target.value }))} fullWidth size="small" sx={styles.input} />
             <TextField label="Email" value={newParty.email} onChange={e => setNewParty(p => ({ ...p, email: e.target.value }))} fullWidth size="small" sx={styles.input} />
             <TextField label="Address" value={newParty.address} onChange={e => setNewParty(p => ({ ...p, address: e.target.value }))} fullWidth multiline rows={2} size="small" sx={styles.input} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, bgcolor: palette.surfaceAlt, borderRadius: 2 }}>
-              <Typography variant="body2" color={palette.textSecondary} fontWeight={600}>
-                {Object.keys(newParty.categoryDiscounts).length} discount{Object.keys(newParty.categoryDiscounts).length !== 1 ? 's' : ''} configured
-              </Typography>
-              <Button size="small" variant="outlined" onClick={() => setOpenNewPartyCategoryDiscountEditor(true)} sx={{ ...styles.btnOutline, fontSize: '0.7rem', py: 0.3 }}>
-                <PercentIcon sx={{ fontSize: 16, mr: 0.3 }} /> Configure
-              </Button>
-            </Box>
           </Box>
         </DialogContent>
         <DialogActions sx={{ borderTop: `1px solid ${palette.border}`, p: 2, gap: 1 }}>
@@ -771,14 +791,14 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
 
       {/* Category Discount Editor for Selected Party */}
       {selectedParty && (
-        <CategoryDiscountEditor open={openCategoryDiscountEditor} onClose={() => setOpenCategoryDiscountEditor(false)}
-          partyId={selectedParty.id} categoryDiscounts={selectedParty.categoryDiscounts} onSave={handleUpdateCategoryDiscounts} />
+        <CategoryDiscountEditor
+          open={openCategoryDiscountEditor}
+          onClose={() => setOpenCategoryDiscountEditor(false)}
+          partyId={selectedParty.id}
+          categoryDiscounts={selectedParty.categoryDiscounts}
+          onSave={handleUpdateCategoryDiscounts}
+        />
       )}
-
-      {/* Category Discount Editor for New Party */}
-      <CategoryDiscountEditor open={openNewPartyCategoryDiscountEditor} onClose={() => setOpenNewPartyCategoryDiscountEditor(false)}
-        partyId="new-party" categoryDiscounts={newParty.categoryDiscounts}
-        onSave={(updatedDiscounts) => { setNewParty(p => ({ ...p, categoryDiscounts: updatedDiscounts })); setSuccessMessage('Discounts updated'); }} />
     </Box>
   );
 }

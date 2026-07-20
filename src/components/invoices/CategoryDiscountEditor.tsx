@@ -134,8 +134,15 @@ const CategoryDiscountEditor: React.FC<CategoryDiscountEditorProps> = ({
         }));
         setDiscounts(discountsList);
         setError(null);
-      } catch (err) {
-        setError('Failed to load categories. Please try again.');
+      } catch (err: any) {
+        const msg = err?.message || '';
+        if (msg.includes('query requires an index') || msg.includes('requires a composite index')) {
+          setError('⚠️ Firestore index required. Create the composite index for the "categories" collection (isActive + name + __name__) or contact your admin to run the deployment script.');
+        } else if (msg.includes('Missing or insufficient permissions')) {
+          setError('Permission denied. You do not have read access to categories.');
+        } else {
+          setError(`Failed to load categories: ${msg || 'Please try again.'}`);
+        }
       } finally {
         setLoading(false);
       }
