@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { 
   CssBaseline, 
@@ -385,12 +385,14 @@ export default function VisuallyEnhancedDashboardLayout({
     localStorage.setItem('theme-mode', newMode ? 'dark' : 'light');
   };
 
-  // Close mobile sidebar on route change
+  // Close mobile sidebar on route change (use ref to compare previous pathname)
+  const prevPathnameRef = useRef(pathname);
   useEffect(() => {
-    if (isMobile && isMobileSidebarOpen) {
+    if (isMobile && isMobileSidebarOpen && prevPathnameRef.current !== pathname) {
       setIsMobileSidebarOpen(false);
     }
-  }, [pathname, isMobile, isMobileSidebarOpen]);
+    prevPathnameRef.current = pathname;
+  }, [pathname, isMobile]);
 
   // Close mobile sidebar when switching to desktop
   useEffect(() => {
@@ -508,7 +510,35 @@ export default function VisuallyEnhancedDashboardLayout({
 
         {/* Animated background elements removed for clean design */}
 
-        {/* Mobile Sidebar — ModernSidebar handles its own mobile drawer */}
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <Box
+            sx={{
+              flexShrink: 0,
+              width: isSidebarHidden ? 0 : (isSidebarMini ? 72 : 280),
+              transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              overflow: 'hidden',
+              visibility: isSidebarHidden ? 'hidden' : 'visible',
+            }}
+          >
+            <ModernSidebar
+              isOpen={true}
+              isMini={isSidebarMini}
+              onToggle={handleSidebarToggle}
+              onMobileClose={handleMobileSidebarClose}
+              showSearch={!isSidebarMini}
+              showUserProfile={!isSidebarMini}
+              userAvatar={currentUser?.photoURL || undefined}
+              userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
+              userRole={currentUser?.uid ? 'Admin' : 'User'}
+              userEmail={currentUser?.email || undefined}
+              onThemeToggle={handleThemeToggle}
+              darkMode={isDarkMode}
+            />
+          </Box>
+        )}
+
+        {/* Mobile Sidebar Overlay — rendered outside flex layout */}
         {isMobile && (
           <ModernSidebar
             isOpen={isMobileSidebarOpen}
@@ -521,28 +551,9 @@ export default function VisuallyEnhancedDashboardLayout({
             userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
             userRole={currentUser?.uid ? 'Admin' : 'User'}
             userEmail={currentUser?.email || undefined}
+            onThemeToggle={handleThemeToggle}
+            darkMode={isDarkMode}
           />
-        )}
-
-        {/* Desktop Sidebar */}
-        {!isMobile && !isSidebarHidden && (
-          <Box
-            sx={{
-              flexShrink: 0,
-              width: isSidebarMini ? 72 : 280,
-              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}
-          >
-            <ModernSidebar
-              isOpen={true}
-              isMini={isSidebarMini}
-              onToggle={handleSidebarToggle}
-              userAvatar={currentUser?.photoURL || undefined}
-              userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
-              userRole={currentUser?.uid ? 'Admin' : 'User'}
-              userEmail={currentUser?.email || undefined}
-            />
-          </Box>
         )}
 
         {/* Floating Sidebar Toggle Button (when sidebar is hidden) */}
@@ -598,7 +609,6 @@ export default function VisuallyEnhancedDashboardLayout({
               }}
             >
               <ConfiguredSimpleModernHeader
-                pageType={pageType}
                 title={title}
                 onThemeToggle={handleThemeToggle}
                 isDarkMode={isDarkMode}
