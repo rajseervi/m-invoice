@@ -224,13 +224,22 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
   }, [selectedPartyId, calculateItemDiscounts]);
 
   const qtyInputRef = React.useRef<HTMLInputElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   // Add product — with explicit qty flow
-  const handleAddProduct = () => {
-    if (!selectedProductId) return;
+  const triggerQtyPrompt = useCallback((productId: string) => {
     if (lineItems.length >= 25) { setWarningMessage('Max 25 items per invoice'); return; }
-    const product = products.find(p => p.id === selectedProductId);
+    const product = products.find(p => p.id === productId);
     if (!product) return;
+    // Check if product already exists in line items — increment qty instead of duplicate
+    const existingIndex = lineItems.findIndex(item => item.productId === productId);
+    if (existingIndex >= 0) {
+      setLineItems(prev => prev.map((item, i) => i === existingIndex
+        ? calculateItemDiscounts({ ...item, quantity: item.quantity + 1 }, selectedParty)
+        : item));
+      setSelectedProductId('');
+      return;
+    }
     let discount = 0;
     let discountType: 'none' | 'category' | 'product' | 'custom' = 'none';
     if (selectedParty) {
@@ -252,6 +261,11 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
         qtyInputRef.current.select();
       }
     }, 100);
+  }, [lineItems, products, selectedParty, calculateItemDiscounts]);
+
+  const handleAddProduct = () => {
+    if (!selectedProductId) return;
+    triggerQtyPrompt(selectedProductId);
   };
 
   const confirmPendingQty = () => {
@@ -265,10 +279,10 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
     setPendingQtyProduct(null);
     setPendingQty(1);
     setSelectedProductId('');
+    setProductSearchOpen(true);
     setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>('#product-search-input');
-      if (input) input.focus();
-    }, 50);
+      searchInputRef.current?.focus();
+    }, 200);
   };
 
   const cancelPendingQty = () => {
@@ -487,24 +501,44 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
               open={productSearchOpen} onOpen={() => setProductSearchOpen(true)} onClose={() => setProductSearchOpen(false)}
               options={products} getOptionLabel={(p) => p.name}
               value={products.find(p => p.id === selectedProductId) || null}
-              onChange={(_, p) => { setSelectedProductId(p?.id || ''); if (p?.id) setProductSearchOpen(false); }}
+              onChange={(_, p) => {
+                if (p?.id) {
+                  setSelectedProductId(p.id);
+                  setProductSearchOpen(false);
+                  triggerQtyPrompt(p.id);
+                } else {
+                  setSelectedProductId('');
+                }
+              }}
               disabled={loadingProducts} size="small"
               sx={{ minWidth: 180, flex: 1 }}
-              renderOption={(props, option) => (
-                <Box component="li" {...props} sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
-                  <Box>
-                    <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
-                    {option.category && <Typography variant="caption" color={palette.textSecondary}>{option.category}</Typography>}
+              renderOption={(props, option) => {
+                const { key, ...optionProps } = props;
+                return (
+                  <Box key={key} component="li" {...optionProps} sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
+                      {option.category && <Typography variant="caption" color={palette.textSecondary}>{option.category}</Typography>}
+                    </Box>
+                    <Typography variant="body2" fontWeight={700} color={palette.primary}>₹{option.price}</Typography>
                   </Box>
-                  <Typography variant="body2" fontWeight={700} color={palette.primary}>₹{option.price}</Typography>
-                </Box>
-              )}
-              renderInput={(params) => (
-                <TextField {...params} placeholder="Search product..."
-                  sx={styles.input}
-                  InputProps={{ ...params.InputProps, startAdornment: (<InputAdornment position="start"><InventoryIcon sx={{ color: palette.textSecondary, fontSize: 18 }} /></InputAdornment>) }}
-                />
-              )}
+                );
+              }}
+              renderInput={(params) => {
+                const muiRef = params.InputProps.ref;
+                return (
+                  <TextField {...params} placeholder="Search product..."
+                    id="product-search-input"
+                    sx={styles.input}
+                    inputRef={(el: HTMLInputElement | null) => {
+                      searchInputRef.current = el;
+                      if (typeof muiRef === 'function') muiRef(el);
+                      else if (muiRef) (muiRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+                    }}
+                    InputProps={{ ...params.InputProps, startAdornment: (<InputAdornment position="start"><InventoryIcon sx={{ color: palette.textSecondary, fontSize: 18 }} /></InputAdornment>) }}
+                  />
+                );
+              }}
               loading={loadingProducts}
               noOptionsText={
                 <Box sx={{ textAlign: 'center', py: 2 }}>
@@ -574,71 +608,97 @@ export default function MobileInvoiceForm({ onSuccess, invoiceId }: MobileInvoic
         <Box sx={{ px: 1.5 }}>
           {lineItems.map((item, index) => {
             const product = products.find(p => p.id === item.productId);
-            const bgColor = index % 2 === 0 ? palette.white : palette.surfaceAlt;
+            const accentColor = item.discount > 0 ? palette.success : palette.primary;
             return (
               <Grow in key={`${item.productId}-${index}`} timeout={200 + index * 50}>
-                <Card sx={{
-                  mb: 1.5, borderRadius: 3, border: `1px solid ${palette.border}`,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  bgcolor: bgColor, overflow: 'visible',
+                <Paper variant="outlined" sx={{
+                  mb: 1.5, borderRadius: 2.5, overflow: 'hidden',
+                  border: `2px solid ${palette.border}`,
+                  borderLeft: `5px solid ${accentColor}`,
+                  boxShadow: '0 2px 0 rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.08)',
+                  bgcolor: palette.white,
                 }}>
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    {/* Top row */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, mr: 1 }}>
-                        <Avatar sx={{ width: 28, height: 28, bgcolor: palette.primaryLight, color: palette.primary, fontSize: '0.75rem', fontWeight: 700 }}>
-                          {index + 1}
-                        </Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight={700} color={palette.text} sx={{ wordBreak: 'break-word', lineHeight: 1.3 }}>
-                            {item.name}
+                  {/* Single compact row: all info, price + qty inline, total on right */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, gap: 1.5 }}>
+                    {/* Index + Name + Category */}
+                    <Avatar sx={{
+                      width: 30, height: 30, bgcolor: alpha(accentColor, 0.12), color: accentColor,
+                      fontSize: '0.8rem', fontWeight: 800, border: `2px solid ${accentColor}`, flexShrink: 0,
+                    }}>
+                      {index + 1}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="body2" fontWeight={800} color={palette.text} noWrap sx={{ maxWidth: '100%' }}>
+                          {item.name}
+                        </Typography>
+                        {product?.category && (
+                          <Typography variant="caption" fontWeight={700} color={palette.textSecondary} noWrap>
+                            {product.category}
                           </Typography>
-                          {product?.category && (
-                            <Chip label={product.category} size="small" sx={{ ...styles.chip(palette.accentLight, palette.accent), mt: 0.3 }} />
-                          )}
-                        </Box>
+                        )}
                       </Box>
-                      <IconButton size="small" onClick={() => handleRemoveItem(index)} sx={{ color: palette.danger, bgcolor: palette.dangerLight, '&:hover': { bgcolor: palette.danger, color: palette.white }, borderRadius: 1.5, width: 30, height: 30 }}>
-                        <CloseIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Box>
-
-                    {/* Price + Qty row */}
-                    <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
-                      <TextField type="number" size="small" label="Price" value={item.price}
-                        onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
-                        inputProps={{ min: 0, step: 0.01 }} sx={{ width: 110, ...styles.input }}
-                        InputLabelProps={{ shrink: true, sx: { fontSize: '0.75rem' } }}
-                        InputProps={{ startAdornment: <InputAdornment position="start" sx={{ '& p': { fontSize: '0.8rem' } }}>₹</InputAdornment> }}
-                      />
-                      <TextField type="number" size="small" label="Qty" value={item.quantity}
-                        onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
-                        inputProps={{ min: 1 }} sx={{ width: 80, ...styles.input }}
-                        InputLabelProps={{ shrink: true, sx: { fontSize: '0.75rem' } }}
-                      />
-                    </Box>
-
-                    {/* Bottom: discount badge + total */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
-                      <Box>
+                      {/* Inline qty × price & discount badge */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <TextField
+                            type="number" size="small" value={item.quantity}
+                            onChange={(e) => handleUpdateQuantity(index, parseInt(e.target.value) || 1)}
+                            inputProps={{ min: 1, style: { fontWeight: 700, fontSize: '0.8rem', textAlign: 'center', padding: '4px 2px' } }}
+                            sx={{
+                              width: 52, ...styles.input,
+                              '& .MuiOutlinedInput-input': { py: 0.6 },
+                            }}
+                          />
+                          <Typography variant="caption" fontWeight={600} color={palette.textSecondary}>×</Typography>
+                          <TextField
+                            type="number" size="small" value={item.price}
+                            onChange={(e) => handleUpdatePrice(index, parseFloat(e.target.value) || 0)}
+                            inputProps={{ min: 0, step: 0.01, style: { fontWeight: 700, fontSize: '0.8rem', padding: '4px 4px' } }}
+                            sx={{
+                              width: 85, ...styles.input,
+                              '& .MuiOutlinedInput-input': { py: 0.6 },
+                            }}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start" sx={{ mr: -0.5, '& p': { fontSize: '0.75rem', fontWeight: 700 } }}>₹</InputAdornment>,
+                            }}
+                          />
+                        </Box>
                         {item.discount > 0 && (
                           <Chip
-                            label={`${item.discount}% off`} size="small"
-                            sx={styles.chip(palette.successLight, palette.success)}
+                            label={`🎉 ${item.discount}%`}
+                            size="small"
+                            sx={{
+                              bgcolor: palette.success, color: palette.white,
+                              fontWeight: 800, borderRadius: 1.5, fontSize: '0.65rem', height: 20,
+                              border: `1.5px solid ${palette.success}`,
+                              '& .MuiChip-label': { px: 1 },
+                            }}
                           />
                         )}
                       </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="caption" color={palette.textSecondary}>
-                          {item.quantity} × ₹{item.price}{item.discount > 0 ? ` (-${item.discount}%)` : ''}
-                        </Typography>
-                        <Typography variant="body1" fontWeight={800} color={palette.primary}>
-                          ₹{item.finalPrice.toFixed(2)}
-                        </Typography>
-                      </Box>
                     </Box>
-                  </CardContent>
-                </Card>
+
+                    {/* Right side: line total + delete */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, gap: 0.3 }}>
+                      <Typography variant="body1" fontWeight={900} color={palette.primary} sx={{ fontSize: '1rem', lineHeight: 1.2 }}>
+                        ₹{item.finalPrice.toFixed(2)}
+                      </Typography>
+                      <IconButton
+                        size="small" onClick={() => handleRemoveItem(index)}
+                        sx={{
+                          color: palette.danger, bgcolor: palette.dangerLight,
+                          border: `1.5px solid ${palette.danger}`,
+                          '&:hover': { bgcolor: palette.danger, color: palette.white },
+                          borderRadius: 1.5, width: 26, height: 26,
+                          boxShadow: '0 1.5px 0 rgba(0,0,0,0.1)',
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
               </Grow>
             );
           })}

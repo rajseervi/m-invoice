@@ -41,19 +41,18 @@ export function useCategories() {
         throw new Error('Firebase database is not initialized');
       }
 
-      // Fetch active categories ordered by name
-      const categoriesQuery = query(
-        collection(db, 'categories'),
-        where('isActive', '==', true),
-        orderBy('name', 'asc')
-      );
+      // Fetch ALL categories (no composite index needed)
+      const categoriesSnapshot = await getDocs(collection(db, 'categories'));
       
-      const categoriesSnapshot = await getDocs(categoriesQuery);
-      
-      const categoriesList = categoriesSnapshot.docs.map(doc => ({
+      let categoriesList = categoriesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Category[];
+      
+      // Filter to active only, sort by name in-memory (avoids composite index requirement)
+      categoriesList = categoriesList
+        .filter(c => c.isActive !== false) // Include if isActive is true or undefined/missing
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       
       setCategories(categoriesList);
     } catch (err) {

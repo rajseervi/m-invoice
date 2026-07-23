@@ -17,7 +17,8 @@ import {
   Drawer,
   SwipeableDrawer,
   IconButton,
-  useTheme
+  useTheme,
+  Avatar,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,7 +53,7 @@ import {
   Notifications as NotificationsIcon,
   Menu as MenuIcon,
   AutoAwesome as AutoAwesomeIcon,
-  Sparkles as SparklesIcon,
+  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 
 interface VisuallyEnhancedDashboardLayoutProps {
@@ -507,69 +508,20 @@ export default function VisuallyEnhancedDashboardLayout({
 
         {/* Animated background elements removed for clean design */}
 
-        {/* Mobile Sidebar Drawer */}
+        {/* Mobile Sidebar — ModernSidebar handles its own mobile drawer */}
         {isMobile && (
-          <SwipeableDrawer
-            anchor="left"
-            open={isMobileSidebarOpen}
-            onClose={handleMobileSidebarClose}
-            onOpen={handleMobileSidebarOpen}
-            disableBackdropTransition={false}
-            disableDiscovery={false}
-            swipeAreaWidth={20}
-            hysteresis={0.52}
-            minFlingVelocity={450}
-            ModalProps={{
-              keepMounted: true,
-              BackdropProps: {
-                sx: {
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(4px)',
-                },
-              },
-            }}
-            PaperProps={{
-              sx: {
-                width: 280,
-                maxWidth: '85vw',
-                boxSizing: 'border-box',
-                border: 'none',
-                background: theme.palette.mode === 'dark' 
-                  ? 'rgba(18, 18, 18, 0.95)' 
-                  : 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: enableVisualEffects ? 'blur(20px)' : 'none',
-                boxShadow: theme.shadows[16],
-                // Ensure proper mobile handling
-                touchAction: 'pan-y',
-                overflowY: 'auto',
-                // Use dynamic viewport height to avoid iOS/Safari issues
-                height: '100dvh',
-                '@supports not (height: 100dvh)': {
-                  height: '100vh',
-                },
-                // Respect device safe areas
-                paddingTop: 'env(safe-area-inset-top)',
-                paddingBottom: 'env(safe-area-inset-bottom)',
-              },
-            }}
-            sx={{
-              '& .MuiDrawer-paper': {
-                width: 280,
-                maxWidth: '85vw',
-              },
-            }}
-          >
-            <ModernSidebar
-              isOpen={true}
-              isMini={false}
-              onToggle={handleSidebarToggle}
-              onMobileClose={handleMobileSidebarClose}
-              userAvatar={currentUser?.photoURL}
-              userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
-              userRole={currentUser?.uid ? 'Admin' : 'User'}
-              userEmail={currentUser?.email}
-            />
-          </SwipeableDrawer>
+          <ModernSidebar
+            isOpen={isMobileSidebarOpen}
+            isMini={false}
+            onToggle={handleSidebarToggle}
+            onMobileClose={handleMobileSidebarClose}
+            showSearch={true}
+            showUserProfile={true}
+            userAvatar={currentUser?.photoURL || undefined}
+            userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
+            userRole={currentUser?.uid ? 'Admin' : 'User'}
+            userEmail={currentUser?.email || undefined}
+          />
         )}
 
         {/* Desktop Sidebar */}
@@ -585,10 +537,10 @@ export default function VisuallyEnhancedDashboardLayout({
               isOpen={true}
               isMini={isSidebarMini}
               onToggle={handleSidebarToggle}
-              userAvatar={currentUser?.photoURL}
+              userAvatar={currentUser?.photoURL || undefined}
               userName={currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
               userRole={currentUser?.uid ? 'Admin' : 'User'}
-              userEmail={currentUser?.email}
+              userEmail={currentUser?.email || undefined}
             />
           </Box>
         )}
