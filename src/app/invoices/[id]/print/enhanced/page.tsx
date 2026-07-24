@@ -12,28 +12,14 @@ import {
   IconButton,
   Stack,
   Tooltip,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Card,
-  CardContent,
-  Grid,
-  ButtonGroup,
   Fade
 } from '@mui/material';
 import {
   Print as PrintIcon,
   Download as DownloadIcon,
   ArrowBack as ArrowBackIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
-  Settings as SettingsIcon,
-  CheckCircle as CheckCircleIcon,
-  Info as InfoIcon,
-  Fullscreen as FullscreenIcon,
-  ZoomIn as ZoomInIcon,
-  ZoomOut as ZoomOutIcon
+  Remove as RemoveIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 import ClassicInvoiceTemplate from '@/components/invoices/templates/ClassicInvoiceTemplate';
 import { Invoice } from '@/types/invoice_no_gst';
@@ -44,27 +30,14 @@ export default function EnhancedPrintInvoicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Enhanced URL parameters with defaults
   const autoprint = searchParams.get('autoprint') === 'true';
-  const copies = Math.max(1, Math.min(10, parseInt(searchParams.get('copies') || '2')));
-  const paperSize = (searchParams.get('paperSize') || 'A4') as 'A4' | 'A5' | 'Letter' | 'Thermal';
-  const orientation = (searchParams.get('orientation') || 'portrait') as 'portrait' | 'landscape';
-  const colorMode = (searchParams.get('colorMode') || 'color') as 'color' | 'grayscale' | 'blackwhite';
-  const copyType = searchParams.get('copyType') || 'original';
-  const singlePageOptimization = searchParams.get('singlePageOptimization') !== 'false';
-  const autoScale = searchParams.get('autoScale') !== 'false';
-  const marginType = searchParams.get('marginType') || 'normal';
-  const printQuality = searchParams.get('printQuality') || 'high';
-  const compactMode = searchParams.get('compactMode') === 'true';
-  const showBorders = searchParams.get('showBorders') === 'true';
-  const fontSize = searchParams.get('fontSize') || 'normal';
+  const defaultCopies = Math.max(1, Math.min(10, parseInt(searchParams.get('copies') || '1')));
   
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(true);
-  const [zoomLevel, setZoomLevel] = useState(100);
-  const [showSettings, setShowSettings] = useState(false);
+  const [copies, setCopies] = useState(defaultCopies);
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -102,17 +75,7 @@ export default function EnhancedPrintInvoicePage() {
     }, 100);
   };
 
-  // Auto-print disabled to prevent direct print dialog box
-  // useEffect(() => {
-  //   if (invoice && autoprint) {
-  //     const t = setTimeout(() => handlePrint(), 1000);
-  //     return () => clearTimeout(t);
-  //   }
-  // }, [invoice, autoprint]);
-
   const handleDownload = () => {
-    // TODO: Implement proper PDF download functionality
-    // For now, just show an alert or use a different method
     alert('PDF download functionality will be implemented. Use the Print button to access browser print dialog.');
   };
 
@@ -125,7 +88,11 @@ export default function EnhancedPrintInvoicePage() {
     }
   };
 
-  // Handle keyboard shortcuts
+  const handleCopiesChange = (delta: number) => {
+    setCopies(prev => Math.max(1, Math.min(10, prev + delta)));
+  };
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -133,31 +100,11 @@ export default function EnhancedPrintInvoicePage() {
       } else if (event.ctrlKey && event.key === 'p') {
         event.preventDefault();
         handlePrint();
-      } else if (event.key === '1') {
-        setZoomLevel(100);
-      } else if (event.key === '2') {
-        setZoomLevel(125);
-      } else if (event.key === '3') {
-        setZoomLevel(150);
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [id, router]);
-
-  // Copy type labels
-  const getCopyInfo = (type: string) => {
-    switch (type) {
-      case 'original': return { label: '📋 Original for Recipient', color: 'primary' as const };
-      case 'duplicate': return { label: '📄 Duplicate for Supplier', color: 'secondary' as const };
-      case 'triplicate': return { label: '🚛 Triplicate for Transporter', color: 'warning' as const };
-      case 'all': return { label: '📋📄🚛 All Copies', color: 'success' as const };
-      default: return { label: '📋 Original', color: 'primary' as const };
-    }
-  };
-
-  const copyInfo = getCopyInfo(copyType);
 
   if (loading) {
     return (
@@ -180,11 +127,7 @@ export default function EnhancedPrintInvoicePage() {
         <Alert severity="error" sx={{ mb: 2 }}>
           {error || 'Invoice not found'}
         </Alert>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={handleBackNavigation}
-          variant="contained"
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={handleBackNavigation} variant="contained">
           Go Back
         </Button>
       </Container>
@@ -193,7 +136,7 @@ export default function EnhancedPrintInvoicePage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: previewMode ? '#f5f5f5' : 'white' }}>
-      {/* Enhanced Preview Controls - Hidden when printing */}
+      {/* Control Bar - Hidden when printing */}
       <Box className="no-print" sx={{ 
         bgcolor: 'white',
         borderBottom: '1px solid #e0e0e0',
@@ -203,8 +146,7 @@ export default function EnhancedPrintInvoicePage() {
         boxShadow: previewMode ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
       }}>
         <Container maxWidth="lg" sx={{ py: 2 }}>
-          {/* Main Control Bar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Tooltip title="Back to Invoice Details (Esc)">
                 <IconButton 
@@ -220,27 +162,48 @@ export default function EnhancedPrintInvoicePage() {
               </Tooltip>
               <Box>
                 <Typography variant="h5" fontWeight="bold">
-                  Enhanced Print Preview
+                  Print Preview
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Invoice #{invoice.invoiceNumber} • Press Esc to go back • Ctrl+P to print
+                  Invoice #{invoice.invoiceNumber} • Esc to go back • Ctrl+P to print
                 </Typography>
               </Box>
             </Box>
 
-            {/* Primary Actions */}
-            <Stack direction="row" spacing={1}>
-              <Tooltip title={previewMode ? "Switch to Print Mode" : "Switch to Preview Mode"}>
-                <Button
-                  startIcon={previewMode ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                  onClick={() => setPreviewMode(!previewMode)}
-                  variant={previewMode ? "outlined" : "contained"}
-                  color="info"
-                  size="large"
+            <Stack direction="row" spacing={2} alignItems="center">
+              {/* Number of Copies Control */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                  Copies:
+                </Typography>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleCopiesChange(-1)}
+                  disabled={copies <= 1}
+                  sx={{ border: '1px solid', borderColor: 'divider' }}
                 >
-                  {previewMode ? 'Preview Mode' : 'Print Mode'}
-                </Button>
-              </Tooltip>
+                  <RemoveIcon fontSize="small" />
+                </IconButton>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    minWidth: 32, 
+                    textAlign: 'center',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {copies}
+                </Typography>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleCopiesChange(1)}
+                  disabled={copies >= 10}
+                  sx={{ border: '1px solid', borderColor: 'divider' }}
+                >
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Box>
+
               <Button
                 startIcon={<DownloadIcon />}
                 onClick={handleDownload}
@@ -256,84 +219,9 @@ export default function EnhancedPrintInvoicePage() {
                 size="large"
                 color="primary"
               >
-                Print Now
+                Print
               </Button>
             </Stack>
-          </Box>
-
-          {/* Settings Summary & Controls */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* Settings Summary */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip 
-                icon={<CheckCircleIcon />}
-                label={copyInfo.label} 
-                color={copyInfo.color} 
-                variant="filled" 
-                size="small"
-              />
-              <Chip 
-                label={`${paperSize} ${orientation}`} 
-                color="default" 
-                variant="outlined" 
-                size="small"
-              />
-              <Chip 
-                label={`${copies} ${copies === 1 ? 'copy' : 'copies'}`} 
-                color="secondary" 
-                variant="outlined" 
-                size="small"
-              />
-              {singlePageOptimization && (
-                <Chip 
-                  label="Single Page Optimized" 
-                  color="success" 
-                  variant="outlined"
-                  size="small"
-                  icon={<CheckCircleIcon />}
-                />
-              )}
-              {compactMode && (
-                <Chip 
-                  label="Compact Mode" 
-                  color="warning" 
-                  variant="outlined"
-                  size="small"
-                />
-              )}
-            </Box>
-
-            {/* Zoom Controls */}
-            {previewMode && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" color="text.secondary">
-                  Zoom:
-                </Typography>
-                <ButtonGroup size="small" variant="outlined">
-                  <IconButton 
-                    onClick={() => setZoomLevel(Math.max(50, zoomLevel - 25))}
-                    disabled={zoomLevel <= 50}
-                  >
-                    <ZoomOutIcon fontSize="small" />
-                  </IconButton>
-                  <Button
-                    onClick={() => setZoomLevel(100)}
-                    sx={{ minWidth: '60px' }}
-                  >
-                    {zoomLevel}%
-                  </Button>
-                  <IconButton 
-                    onClick={() => setZoomLevel(Math.min(200, zoomLevel + 25))}
-                    disabled={zoomLevel >= 200}
-                  >
-                    <ZoomInIcon fontSize="small" />
-                  </IconButton>
-                </ButtonGroup>
-                <Typography variant="caption" color="text.secondary">
-                  1,2,3 keys
-                </Typography>
-              </Stack>
-            )}
           </Box>
         </Container>
       </Box>
@@ -344,7 +232,7 @@ export default function EnhancedPrintInvoicePage() {
         sx={{ 
           py: previewMode ? 3 : 0,
           px: previewMode ? 2 : 0,
-          minHeight: previewMode ? 'calc(100vh - 140px)' : '100vh',
+          minHeight: previewMode ? 'calc(100vh - 80px)' : '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -357,7 +245,6 @@ export default function EnhancedPrintInvoicePage() {
           }
         }}
       >
-        {/* Print Preview Container */}
         <Paper 
           elevation={previewMode ? 8 : 0}
           sx={{ 
@@ -365,9 +252,6 @@ export default function EnhancedPrintInvoicePage() {
             width: previewMode ? '8.5in' : '100%',
             minHeight: previewMode ? '11in' : '100vh',
             bgcolor: 'white',
-            transform: previewMode ? `scale(${zoomLevel / 100})` : 'none',
-            transformOrigin: 'top center',
-            transition: 'all 0.3s ease-in-out',
             '@media print': {
               transform: 'none',
               width: '100%',
@@ -378,51 +262,6 @@ export default function EnhancedPrintInvoicePage() {
             }
           }}
         >
-          {/* Preview Mode Indicators */}
-          {previewMode && (
-            <Box className="no-print" sx={{ 
-              position: 'absolute', 
-              top: -40, 
-              left: 0, 
-              right: 0, 
-              textAlign: 'center',
-              zIndex: 10
-            }}>
-              <Chip 
-                icon={<InfoIcon />}
-                label={`Print Preview - ${paperSize} ${orientation} - ${zoomLevel}% zoom`}
-                color="info"
-                size="small"
-                sx={{ bgcolor: 'rgba(25, 118, 210, 0.1)' }}
-              />
-            </Box>
-          )}
-
-          {/* Paper Guidelines (Preview Only) */}
-          {previewMode && showBorders && (
-            <Box 
-              className="no-print"
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                border: '2px dashed #2196f3',
-                pointerEvents: 'none',
-                '&::before': {
-                  content: '"Print Area"',
-                  position: 'absolute',
-                  top: '5px',
-                  left: '10px',
-                  fontSize: '10px',
-                  color: '#2196f3',
-                  fontWeight: 'bold'
-                }
-              }}
-            />
-          )}
-
           {/* Invoice Content */}
           <Box 
             className="invoice-print-container"
@@ -453,45 +292,22 @@ export default function EnhancedPrintInvoicePage() {
                     }
                   }}
                 >
-                  {/* Copy Header (for multiple copies) */}
-                  {/* {copies > 1 && (
-                    <Box sx={{ 
-                      textAlign: 'center', 
-                      mb: 1, 
-                      py: 0.5,
-                      bgcolor: previewMode ? 'rgba(0,0,0,0.03)' : 'transparent',
-                      '@media print': { bgcolor: 'transparent' }
-                    }}>
-                      <Typography 
-                        variant="subtitle2" 
-                        sx={{ 
-                          fontWeight: 700, 
-                          letterSpacing: 1,
-                          color: previewMode ? 'text.secondary' : 'black'
-                        }}
-                      >
-                        {['Original', 'Duplicate', 'Triplicate', 'Quadruplicate', 'Quintuplicate'][idx] ?? `Copy ${idx + 1}`}
-                      </Typography>
-                    </Box>
-                  )} */}
-                  
-                  {/* Invoice Template */}
                   <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <ClassicInvoiceTemplate 
                       invoice={invoice}
                       settings={{
-                        paperSize,
-                        orientation,
-                        colorMode,
-                        marginType,
-                        fontSize,
-                        compactMode,
-                        singlePageOptimization,
-                        autoScale,
-                        printQuality
+                        paperSize: 'A4',
+                        orientation: 'portrait',
+                        colorMode: 'color',
+                        marginType: 'normal',
+                        fontSize: 'normal',
+                        compactMode: false,
+                        singlePageOptimization: true,
+                        autoScale: true,
+                        printQuality: 'high'
                       }}
                       previewMode={previewMode}
-                      copyLabel={copies === 1 ? copyInfo.label : (
+                      copyLabel={copies === 1 ? 'Original for Recipient' : (
                         ['Original for Recipient', 'Duplicate for Supplier', 'Triplicate for Transporter'][idx] ?? `Copy ${idx + 1}`
                       )}
                     />
@@ -503,12 +319,12 @@ export default function EnhancedPrintInvoicePage() {
         </Paper>
       </Container>
 
-      {/* Enhanced Print Styles */}
+      {/* Print Styles */}
       <style jsx global>{`
         @media print {
           @page {
-            size: ${orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'};
-            margin: ${marginType === 'minimal' ? '5mm' : marginType === 'wide' ? '15mm' : '10mm'};
+            size: A4 portrait;
+            margin: 10mm;
           }
           
           .no-print {
@@ -532,12 +348,6 @@ export default function EnhancedPrintInvoicePage() {
             margin-bottom: 0 !important;
           }
           
-          .tally-template {
-            font-size: ${fontSize === 'small' ? '8px' : fontSize === 'large' ? '12px' : '10px'} !important;
-            ${compactMode ? 'line-height: 1.1 !important;' : ''}
-          }
-          
-          /* Enhanced print quality */
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -545,14 +355,11 @@ export default function EnhancedPrintInvoicePage() {
           }
         }
         
-        /* Preview mode enhancements */
-        ${previewMode ? `
-          .invoice-print-container {
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-          }
-        ` : ''}
+        .invoice-print-container {
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          overflow: hidden;
+        }
       `}</style>
     </Box>
   );

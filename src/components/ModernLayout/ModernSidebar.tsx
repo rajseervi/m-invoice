@@ -112,9 +112,9 @@ const modernNavigationSections: NavSection[] = [
       { id: 'invoices', title: 'Invoices', path: '/invoices', icon: <ReceiptIcon />, keywords: ['invoices', 'billing', 'sales'], category: 'primary', children: [
         { id: 'invoices-new', title: 'Create Invoice', path: '/invoices/new', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
         { id: 'invoices-list', title: 'All Invoices', path: '/invoices', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'invoices-regular', title: 'Regular Invoices', path: '/invoices/regular', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+        // { id: 'invoices-regular', title: 'Regular Invoices', path: '/invoices/regular', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
       ]},
-      { id: 'orders', title: 'Orders', path: '/orders', icon: <ShoppingCartIcon />, category: 'primary' },
+      // { id: 'orders', title: 'Orders', path: '/orders', icon: <ShoppingCartIcon />, category: 'primary' },
       { id: 'purchases', title: 'Purchases', path: '/purchases', icon: <LocalShippingIcon />, category: 'primary' },
     ],
   },
@@ -131,7 +131,7 @@ const modernNavigationSections: NavSection[] = [
         { id: 'categories-new', title: 'Add Category', path: '/categories/new', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
         { id: 'categories-dashboard', title: 'Category Dashboard', path: '/categories/dashboard', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
       ]},
-      { id: 'stock-management', title: 'Stock Control', path: '/stock-management', icon: <StoreIcon />, category: 'primary' },
+      // { id: 'stock-management', title: 'Stock Control', path: '/stock-management', icon: <StoreIcon />, category: 'primary' },
       { id: 'purchase-invoices', title: 'Purchase Invoices', path: '/inventory/purchase-invoices', icon: <DescriptionIcon />, category: 'primary', children: [
         { id: 'purchase-invoices-list', title: 'All Purchase Invoices', path: '/inventory/purchase-invoices', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
         { id: 'purchase-invoices-new', title: 'Record Invoice', path: '/inventory/purchase-invoices/new', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
@@ -149,43 +149,43 @@ const modernNavigationSections: NavSection[] = [
         { id: 'parties-list', title: 'All Parties', path: '/parties', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
         { id: 'parties-new', title: 'Add Party', path: '/parties/new', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
       ]},
-      { id: 'customers-page', title: 'Customers', path: '/customers', icon: <GroupIcon />, category: 'primary', children: [
-        { id: 'customers-list', title: 'All Customers', path: '/customers', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'customers-analytics', title: 'Customer Analytics', path: '/customers/analytics', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary', isNew: true },
-      ]},
+      // { id: 'customers-page', title: 'Customers', path: '/customers', icon: <GroupIcon />, category: 'primary', children: [
+      //   { id: 'customers-list', title: 'All Customers', path: '/customers', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+      //   { id: 'customers-analytics', title: 'Customer Analytics', path: '/customers/analytics', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary', isNew: true },
+      // ]},
       { id: 'ledger', title: 'Party Ledger', path: '/ledger', icon: <AccountBalanceIcon />, category: 'primary' },
     ],
   },
-  {
-    id: 'accounting', title: 'Accounting & Finance', color: '#8b5cf6',
-    items: [
-      { id: 'accounting', title: 'Accounting Dashboard', path: '/accounting', icon: <PaymentsIcon />, category: 'primary', children: [
-        { id: 'accounting-ledger', title: 'General Ledger', path: '/accounting/ledger', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'accounting-journal', title: 'Journal Entries', path: '/accounting/journal', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'accounting-statements', title: 'Statements', path: '/accounting/statements', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'accounting-transactions', title: 'Transactions', path: '/accounting/transactions', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-      ]},
-    ],
-  },
-  {
-    id: 'reports', title: 'Reports & Analytics', color: '#ef4444',
-    items: [
-      { id: 'reports-page', title: 'Reports', path: '/reports', icon: <AssessmentIcon />, category: 'primary', children: [
-        { id: 'reports-sales', title: 'Sales Reports', path: '/reports/sales', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'reports-products', title: 'Product Reports', path: '/reports/products', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'reports-hsn', title: 'HSN Analysis', path: '/reports/hsn-analysis', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-        { id: 'reports-data-quality', title: 'Data Quality', path: '/reports/data-quality', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
-      ]},
-    ],
-  },
-  {
-    id: 'tools', title: 'Tools & Utilities', color: '#ec4899',
-    items: [
-      { id: 'quick-links', title: 'Quick Links', path: '/quick-links', icon: <LinkIcon />, category: 'secondary' },
-      { id: 'backup', title: 'Backup & Restore', path: '/backup', icon: <BackupIcon />, category: 'secondary', isNew: true },
-      { id: 'pending-approval', title: 'Pending Approvals', path: '/pending-approval', icon: <ScheduleIcon />, category: 'secondary', badge: 3 },
-    ],
-  },
+  // {
+  //   id: 'accounting', title: 'Accounting & Finance', color: '#8b5cf6',
+  //   items: [
+  //     { id: 'accounting', title: 'Accounting Dashboard', path: '/accounting', icon: <PaymentsIcon />, category: 'primary', children: [
+  //       { id: 'accounting-ledger', title: 'General Ledger', path: '/accounting/ledger', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'accounting-journal', title: 'Journal Entries', path: '/accounting/journal', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'accounting-statements', title: 'Statements', path: '/accounting/statements', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'accounting-transactions', title: 'Transactions', path: '/accounting/transactions', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //     ]},
+  //   ],
+  // },
+  // {
+  //   id: 'reports', title: 'Reports & Analytics', color: '#ef4444',
+  //   items: [
+  //     { id: 'reports-page', title: 'Reports', path: '/reports', icon: <AssessmentIcon />, category: 'primary', children: [
+  //       { id: 'reports-sales', title: 'Sales Reports', path: '/reports/sales', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'reports-products', title: 'Product Reports', path: '/reports/products', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'reports-hsn', title: 'HSN Analysis', path: '/reports/hsn-analysis', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //       { id: 'reports-data-quality', title: 'Data Quality', path: '/reports/data-quality', icon: <FiberManualRecordIcon sx={{ fontSize: 8 }} />, category: 'secondary' },
+  //     ]},
+  //   ],
+  // },
+  // {
+  //   id: 'tools', title: 'Tools & Utilities', color: '#ec4899',
+  //   items: [
+  //     { id: 'quick-links', title: 'Quick Links', path: '/quick-links', icon: <LinkIcon />, category: 'secondary' },
+  //     { id: 'backup', title: 'Backup & Restore', path: '/backup', icon: <BackupIcon />, category: 'secondary', isNew: true },
+  //     { id: 'pending-approval', title: 'Pending Approvals', path: '/pending-approval', icon: <ScheduleIcon />, category: 'secondary', badge: 3 },
+  //   ],
+  // },
   {
     id: 'administration', title: 'Administration', color: '#6b7280',
     items: [

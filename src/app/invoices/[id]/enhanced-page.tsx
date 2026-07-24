@@ -29,7 +29,6 @@ import {
   TableRow,
   Paper,
   Avatar,
-  LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -41,8 +40,11 @@ import {
   FormControlLabel,
   Tabs,
   Tab,
-  Badge,
-  Skeleton
+  Skeleton,
+  useMediaQuery,
+  useTheme,
+  CardActions,
+  Collapse,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -95,31 +97,8 @@ interface PrintDialogProps {
   invoice: Invoice;
 }
 
-const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoiceId, invoice }) => {
-  const [printSettings, setPrintSettings] = useState({
-    template: 'modern',
-    paperSize: 'A4',
-    orientation: 'portrait',
-    includeHeader: true,
-    includeFooter: true,
-    showWatermark: false,
-    copies: 2,
-    colorMode: 'color',
-    leftWidth: 50,
-    rightWidth: 50,
-    gapWidth: 12,
-    equalWidth: true,
-    // Enhanced print settings
-    copyType: 'original' as 'original' | 'duplicate' | 'triplicate' | 'all',
-    singlePageOptimization: true,
-    autoScale: true,
-    marginType: 'normal' as 'minimal' | 'normal' | 'wide',
-    printQuality: 'high' as 'draft' | 'normal' | 'high',
-    pageBreaks: 'auto' as 'auto' | 'force' | 'avoid',
-    showBorders: false,
-    compactMode: false,
-    fontSize: 'normal' as 'small' | 'normal' | 'large'
-  });
+const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoiceId, invoice, isMobile = false }) => {
+  const [copies, setCopies] = useState(1);
   const [printing, setPrinting] = useState(false);
   const router = useRouter();
 
@@ -127,66 +106,16 @@ const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoic
     setPrinting(true);
     try {
       const params = new URLSearchParams({
-        template: printSettings.template,
-        paperSize: printSettings.paperSize,
-        orientation: printSettings.orientation,
-        includeHeader: printSettings.includeHeader.toString(),
-        includeFooter: printSettings.includeFooter.toString(),
-        showWatermark: printSettings.showWatermark.toString(),
-        copies: printSettings.copies.toString(),
-        colorMode: printSettings.colorMode,
-        // Enhanced parameters
-        copyType: printSettings.copyType,
-        singlePageOptimization: printSettings.singlePageOptimization.toString(),
-        autoScale: printSettings.autoScale.toString(),
-        marginType: printSettings.marginType,
-        printQuality: printSettings.printQuality,
-        pageBreaks: printSettings.pageBreaks,
-        showBorders: printSettings.showBorders.toString(),
-        compactMode: printSettings.compactMode.toString(),
-        fontSize: printSettings.fontSize,
+        copies: copies.toString(),
         action
       });
 
-      // Handle dual-classic template specially
-      if (printSettings.template === 'dual-classic') {
-        if (action === 'preview') {
-          window.open(`/invoices/${invoiceId}/print/dual-classic`, '_blank');
-        } else if (action === 'download') {
-          window.open(`/invoices/${invoiceId}/print/dual-classic?download=true`, '_blank');
-        } else {
-          // Direct print - Open in print mode without auto-triggering print dialog
-          window.open(`/invoices/${invoiceId}/print/dual-classic`, '_blank');
-        }
-      } else if (printSettings.template === 'printable-dual') {
-        // Handle PrintableInvoiceDual template with width settings
-        const dualParams = new URLSearchParams({
-          leftWidth: printSettings.leftWidth.toString(),
-          rightWidth: printSettings.rightWidth.toString(),
-          gapWidth: printSettings.gapWidth.toString(),
-          equalWidth: printSettings.equalWidth.toString(),
-          colorMode: printSettings.colorMode,
-          orientation: printSettings.orientation
-        });
-        
-        if (action === 'preview') {
-          window.open(`/invoices/${invoiceId}/print/printable-dual?${dualParams.toString()}`, '_blank');
-        } else if (action === 'download') {
-          window.open(`/invoices/${invoiceId}/print/printable-dual?${dualParams.toString()}&download=true`, '_blank');
-        } else {
-          // Direct print - Open in print mode without auto-triggering print dialog
-          window.open(`/invoices/${invoiceId}/print/printable-dual?${dualParams.toString()}`, '_blank');
-        }
+      if (action === 'preview') {
+        window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}`, '_blank');
+      } else if (action === 'download') {
+        window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}&download=true`, '_blank');
       } else {
-        // Handle other templates
-        if (action === 'preview') {
-          window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}`, '_blank');
-        } else if (action === 'download') {
-          window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}&download=true`, '_blank');
-        } else {
-          // Direct print - Open in print mode without auto-triggering print dialog
-          window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}`, '_blank');
-        }
+        window.open(`/invoices/${invoiceId}/print/enhanced?${params.toString()}`, '_blank');
       }
       onClose();
     } catch (error) {
@@ -197,23 +126,27 @@ const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoic
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)', color: 'white' }}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle sx={{
+        background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+        color: 'white',
+        px: { xs: 2, sm: 3 },
+        py: { xs: 1.5, sm: 2 }
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ 
-              p: 1, 
-              borderRadius: 1, 
-              backgroundColor: 'rgba(255,255,255,0.2)' 
-            }}>
-              <PrintIcon />
-            </Box>
+            <PrintIcon />
             <Box>
-              <Typography variant="h6" fontWeight="bold">
-                Enhanced Print Settings
+              <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
+                Print Invoice
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Advanced options for perfect printing • Invoice #{invoice?.invoiceNumber || invoiceId}
+              <Typography variant="caption" sx={{ opacity: 0.9, display: { xs: 'none', sm: 'block' } }}>
+                #{invoice?.invoiceNumber || invoiceId}
               </Typography>
             </Box>
           </Box>
@@ -222,457 +155,67 @@ const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoic
             size="small"
             sx={{ 
               color: 'white',
-              '&:hover': { 
-                backgroundColor: 'rgba(255,255,255,0.1)' 
-              }
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
           >
             <ErrorIcon />
           </IconButton>
         </Box>
       </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Template</InputLabel>
-              <Select
-                value={printSettings.template}
-                label="Template"
-                onChange={(e) => {
-                  const newTemplate = e.target.value;
-                  setPrintSettings(prev => ({ 
-                    ...prev, 
-                    template: newTemplate,
-                    // Auto-set landscape for dual templates for better space utilization
-                    orientation: (newTemplate === 'dual-classic' || newTemplate === 'printable-dual') ? 'landscape' : prev.orientation
-                  }))
-                }}
-              >
-                <MenuItem value="modern">Modern Template</MenuItem>
-                <MenuItem value="classic">Classic Template</MenuItem>
-                <MenuItem value="minimal">Minimal Template</MenuItem>
-                <MenuItem value="thermal">Thermal Receipt</MenuItem>
-                <MenuItem value="dualapp">Dual Format</MenuItem>
-                <MenuItem value="dual-classic">Dual Classic (Original + Duplicate)</MenuItem>
-                <MenuItem value="printable-dual">PrintableInvoiceDual (Side by Side)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Paper Size</InputLabel>
-              <Select
-                value={printSettings.paperSize}
-                label="Paper Size"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, paperSize: e.target.value }))}
-              >
-                <MenuItem value="A4">A4</MenuItem>
-                <MenuItem value="A5">A5</MenuItem>
-                <MenuItem value="Letter">Letter</MenuItem>
-                <MenuItem value="Thermal">Thermal (80mm)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Orientation</InputLabel>
-              <Select
-                value={printSettings.orientation}
-                label="Orientation"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, orientation: e.target.value }))}
-              >
-                <MenuItem value="portrait">Portrait</MenuItem>
-                <MenuItem value="landscape">Landscape</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Color Mode</InputLabel>
-              <Select
-                value={printSettings.colorMode}
-                label="Color Mode"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, colorMode: e.target.value }))}
-              >
-                <MenuItem value="color">Color</MenuItem>
-                <MenuItem value="grayscale">Grayscale</MenuItem>
-                <MenuItem value="blackwhite">Black & White</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <Stack spacing={2}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.includeHeader}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, includeHeader: e.target.checked }))}
-                  />
-                }
-                label="Include Header"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.includeFooter}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, includeFooter: e.target.checked }))}
-                  />
-                }
-                label="Include Footer"
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.showWatermark}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, showWatermark: e.target.checked }))}
-                  />
-                }
-                label="Show Watermark"
-              />
-            </Stack>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography gutterBottom>Number of Copies: {printSettings.copies}</Typography>
-            <Box sx={{ px: 2 }}>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={printSettings.copies}
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, copies: parseInt(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </Box>
-          </Grid>
-
-          {/* Enhanced Print Settings Section */}
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }}>
-              <Chip 
-                icon={<SettingsIcon />} 
-                label="Advanced Settings" 
-                color="primary" 
-                variant="outlined" 
-                size="small"
-              />
-            </Divider>
-          </Grid>
-          
-          {/* Copy Type Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Copy Type</InputLabel>
-              <Select
-                value={printSettings.copyType}
-                label="Copy Type"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, copyType: e.target.value as any }))}
-              >
-                <MenuItem value="original">📋 Original for Recipient</MenuItem>
-                <MenuItem value="duplicate">📄 Duplicate for Supplier</MenuItem>
-                <MenuItem value="triplicate">🚛 Triplicate for Transporter</MenuItem>
-                <MenuItem value="all">📋📄🚛 All Copies</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Print Quality */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Print Quality</InputLabel>
-              <Select
-                value={printSettings.printQuality}
-                label="Print Quality"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, printQuality: e.target.value as any }))}
-              >
-                <MenuItem value="draft">💡 Draft (Fast, Lower Ink)</MenuItem>
-                <MenuItem value="normal">📄 Normal (Balanced)</MenuItem>
-                <MenuItem value="high">⭐ High (Best Quality)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Font Size */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Font Size</InputLabel>
-              <Select
-                value={printSettings.fontSize}
-                label="Font Size"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, fontSize: e.target.value as any }))}
-              >
-                <MenuItem value="small">🔍 Small (Fit More Content)</MenuItem>
-                <MenuItem value="normal">📰 Normal (Standard)</MenuItem>
-                <MenuItem value="large">🔎 Large (Better Readability)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Margin Type */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Margins</InputLabel>
-              <Select
-                value={printSettings.marginType}
-                label="Margins"
-                onChange={(e) => setPrintSettings(prev => ({ ...prev, marginType: e.target.value as any }))}
-              >
-                <MenuItem value="minimal">📏 Minimal (Max Content)</MenuItem>
-                <MenuItem value="normal">📐 Normal (Balanced)</MenuItem>
-                <MenuItem value="wide">📖 Wide (More Spacing)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          {/* Advanced Toggles */}
-          <Grid item xs={12}>
-            <Stack spacing={2}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.singlePageOptimization}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, singlePageOptimization: e.target.checked }))}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">
-                      📄 Single Page Optimization
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Auto-scale content to fit exactly one page
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.autoScale}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, autoScale: e.target.checked }))}
-                    color="success"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">
-                      🔧 Auto Scale Content
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Automatically adjust size to fit page bounds
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.compactMode}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, compactMode: e.target.checked }))}
-                    color="warning"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">
-                      🗜️ Compact Mode
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Reduce spacing and padding for more content
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={printSettings.showBorders}
-                    onChange={(e) => setPrintSettings(prev => ({ ...prev, showBorders: e.target.checked }))}
-                    color="secondary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium">
-                      🖼️ Show Borders & Guidelines
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Display borders and guides (preview only)
-                    </Typography>
-                  </Box>
-                }
-              />
-            </Stack>
-          </Grid>
-
-          {/* Print Optimization Info */}
-          {printSettings.singlePageOptimization && (
-            <Grid item xs={12}>
-              <Alert severity="success" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>✅ Single Page Mode Active:</strong> Content will automatically scale to fit perfectly on one page. 
-                  {printSettings.autoScale && " Auto-scaling is enabled for optimal results."}
-                  {printSettings.compactMode && " Compact mode will reduce spacing for maximum content."}
-                </Typography>
-              </Alert>
-            </Grid>
-          )}
-          
-          {/* Dual Classic Template Info */}
-          {printSettings.template === 'dual-classic' && (
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Dual Classic Template:</strong> This will print both Original (for recipient) and Duplicate (for supplier) copies side by side on one A4 page in landscape orientation. Perfect for maintaining records while providing customer copies.
-                </Typography>
-              </Alert>
-            </Grid>
-          )}
-
-          {/* PrintableInvoiceDual Template Info & Width Controls */}
-          {printSettings.template === 'printable-dual' && (
-            <>
-              <Grid item xs={12}>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    <strong>PrintableInvoiceDual Template:</strong> Side-by-side layout with customizable widths. Original and Duplicate copies can have different widths for optimal space utilization.
-                  </Typography>
-                </Alert>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={printSettings.equalWidth}
-                      onChange={(e) => setPrintSettings(prev => ({ ...prev, equalWidth: e.target.checked }))}
-                    />
-                  }
-                  label="Equal Width (50/50)"
-                />
-              </Grid>
-
-              {!printSettings.equalWidth && (
-                <>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2" gutterBottom>
-                      Original Width: {printSettings.leftWidth}%
-                    </Typography>
-                    <input
-                      type="range"
-                      min="20"
-                      max="80"
-                      step="5"
-                      value={printSettings.leftWidth}
-                      onChange={(e) => {
-                        const leftWidth = parseInt(e.target.value);
-                        const rightWidth = Math.min(100 - leftWidth, 80);
-                        setPrintSettings(prev => ({ 
-                          ...prev, 
-                          leftWidth,
-                          rightWidth: Math.max(rightWidth, 20)
-                        }));
-                      }}
-                      style={{ width: '100%' }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2" gutterBottom>
-                      Duplicate Width: {printSettings.rightWidth}%
-                    </Typography>
-                    <input
-                      type="range"
-                      min="20"
-                      max="80"
-                      step="5"
-                      value={printSettings.rightWidth}
-                      onChange={(e) => {
-                        const rightWidth = parseInt(e.target.value);
-                        const leftWidth = Math.min(100 - rightWidth, 80);
-                        setPrintSettings(prev => ({ 
-                          ...prev, 
-                          rightWidth,
-                          leftWidth: Math.max(leftWidth, 20)
-                        }));
-                      }}
-                      style={{ width: '100%' }}
-                    />
-                  </Grid>
-                </>
-              )}
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="body2" gutterBottom>
-                  Gap Width: {printSettings.gapWidth}px
-                </Typography>
-                <input
-                  type="range"
-                  min="4"
-                  max="30"
-                  step="2"
-                  value={printSettings.gapWidth}
-                  onChange={(e) => setPrintSettings(prev => ({ ...prev, gapWidth: parseInt(e.target.value) }))}
-                  style={{ width: '100%' }}
-                />
-              </Grid>
-            </>
-          )}
-        </Grid>
-      </DialogContent>
-      <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
-        {/* Settings Summary */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Typography variant="caption" color="text.secondary" fontWeight="medium">
-            Current Settings:
+      <DialogContent sx={{ px: { xs: 1.5, sm: 3 }, py: 3 }}>
+        <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
+          Number of Copies
+        </Typography>
+        <Box sx={{ px: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h6" sx={{ minWidth: 24, textAlign: 'center', fontWeight: 700, color: 'primary.main' }}>
+            {copies}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
-            <Chip 
-              size="small" 
-              label={`${printSettings.template} template`} 
-              color="primary" 
-              variant="outlined" 
+          <Box sx={{ flex: 1 }}>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={copies}
+              onChange={(e) => setCopies(parseInt(e.target.value))}
+              style={{ width: '100%' }}
             />
-            <Chip 
-              size="small" 
-              label={`${printSettings.paperSize} ${printSettings.orientation}`} 
-              color="default" 
-              variant="outlined" 
-            />
-            <Chip 
-              size="small" 
-              label={`${printSettings.copies} ${printSettings.copies === 1 ? 'copy' : 'copies'}`} 
-              color="secondary" 
-              variant="outlined" 
-            />
-            {printSettings.singlePageOptimization && (
-              <Chip 
-                size="small" 
-                label="Single Page" 
-                color="success" 
-                variant="outlined"
-                icon={<CheckCircleIcon fontSize="small" />}
-              />
-            )}
           </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 36 }}>
+            / 10
+          </Typography>
         </Box>
-
-        {/* Action Buttons */}
-        <Stack direction="row" spacing={1}>
-          <Button 
-            onClick={onClose}
-            variant="outlined"
-            color="inherit"
-          >
-            Cancel
-          </Button>
+      </DialogContent>
+      <DialogActions sx={{
+        p: { xs: 1.5, sm: 3 },
+        flexDirection: { xs: 'column-reverse', sm: 'row' },
+        gap: { xs: 1, sm: 0 },
+        '& > *': { width: { xs: '100%', sm: 'auto' } }
+      }}>
+        <Button
+          onClick={onClose}
+          variant="outlined"
+          color="inherit"
+          fullWidth={isMobile}
+          size={isMobile ? 'small' : 'medium'}
+        >
+          Cancel
+        </Button>
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          width: { xs: '100%', sm: 'auto' },
+          flexDirection: { xs: 'row', sm: 'row' },
+          justifyContent: 'flex-end'
+        }}>
           <Button
             onClick={() => handlePrint('preview')}
             startIcon={<VisibilityIcon />}
             disabled={printing}
             variant="outlined"
             color="primary"
+            size={isMobile ? 'small' : 'medium'}
+            fullWidth={isMobile}
+            sx={{ flex: { xs: 1, sm: 0 } }}
           >
             Preview
           </Button>
@@ -682,6 +225,9 @@ const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoic
             disabled={printing}
             variant="outlined"
             color="secondary"
+            size={isMobile ? 'small' : 'medium'}
+            fullWidth={isMobile}
+            sx={{ flex: { xs: 1, sm: 0 } }}
           >
             PDF
           </Button>
@@ -691,11 +237,13 @@ const EnhancedPrintDialog: React.FC<PrintDialogProps> = ({ open, onClose, invoic
             variant="contained"
             color="primary"
             disabled={printing}
-            sx={{ minWidth: '120px' }}
+            size={isMobile ? 'small' : 'medium'}
+            fullWidth={isMobile}
+            sx={{ minWidth: { xs: 'auto', sm: '120px' }, flex: { xs: 1, sm: 0 } }}
           >
-            {printing ? 'Printing...' : 'Print Now'}
+            {printing ? '...' : 'Print'}
           </Button>
-        </Stack>
+        </Box>
       </DialogActions>
     </Dialog>
   );
@@ -736,6 +284,9 @@ export default function EnhancedInvoiceDetailPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [relatedInvoices, setRelatedInvoices] = useState<Invoice[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Memoized calculations
   const invoiceStats = useMemo(() => {
@@ -919,20 +470,28 @@ export default function EnhancedInvoiceDetailPage() {
     }
   };
 
-  // Enhanced header with better actions
+  // Enhanced header with better actions — mobile-first compact layout
   const PageHeader = () => (
     <Fade in timeout={800}>
       <Box sx={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: 3,
-        p: 3,
-        mb: 4,
+        borderRadius: isMobile ? 2 : 3,
+        p: isMobile ? 2 : 3,
+        mb: isMobile ? 2 : 4,
         color: 'white',
         position: 'relative',
         overflow: 'hidden'
       }}>
         <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          {/* Mobile: column layout; Desktop: row layout */}
+          <Box sx={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'stretch' : 'flex-start',
+            gap: isMobile ? 1.5 : 0,
+            mb: 2
+          }}>
             <Box>
               <Button
                 component={Link}
@@ -943,34 +502,35 @@ export default function EnhancedInvoiceDetailPage() {
                 sx={{
                   color: 'white',
                   borderColor: 'rgba(255,255,255,0.3)',
-                  mb: 2,
+                  mb: 1.5,
+                  fontSize: isMobile ? '0.75rem' : undefined,
                   '&:hover': {
                     borderColor: 'white',
                     bgcolor: 'rgba(255,255,255,0.1)'
                   }
                 }}
               >
-                Back to Invoices
+                Back
               </Button>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 1.5 : 2 }}>
                 <Zoom in timeout={1000}>
                   <Box sx={{
                     bgcolor: 'rgba(255,255,255,0.2)',
-                    p: 1.5,
+                    p: isMobile ? 1 : 1.5,
                     borderRadius: 2,
                     backdropFilter: 'blur(10px)'
                   }}>
-                    <ReceiptIcon sx={{ fontSize: 32, color: 'white' }} />
+                    <ReceiptIcon sx={{ fontSize: isMobile ? 24 : 32, color: 'white' }} />
                   </Box>
                 </Zoom>
                 <Box>
-                  <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+                  <Typography variant={isMobile ? "h5" : "h4"} component="h1" fontWeight="bold" sx={{ fontSize: isMobile ? '1.1rem' : undefined }} gutterBottom>
                     Invoice Details
                   </Typography>
                   {!loading && invoice && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                      <Typography variant={isMobile ? "body1" : "h6"} sx={{ opacity: 0.9 }}>
                         {invoice.invoiceNumber}
                       </Typography>
                       <Tooltip title="Copy invoice number">
@@ -998,40 +558,51 @@ export default function EnhancedInvoiceDetailPage() {
             </Box>
 
             {!loading && invoice && (
-              <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Stack
+                direction={isMobile ? 'row' : 'row'}
+                spacing={1}
+                flexWrap="wrap"
+                sx={{ alignSelf: isMobile ? 'flex-start' : undefined }}
+              >
                 <Tooltip title="Edit invoice">
                   <Button
                     onClick={handleEdit}
-                    startIcon={<EditIcon />}
+                    startIcon={isMobile ? undefined : <EditIcon />}
                     variant="contained"
                     size="small"
                     sx={{
                       bgcolor: 'rgba(255,255,255,0.2)',
                       color: 'white',
                       backdropFilter: 'blur(10px)',
+                      fontSize: isMobile ? '0.75rem' : undefined,
+                      minWidth: isMobile ? 36 : undefined,
+                      px: isMobile ? 1 : undefined,
                       '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                     }}
                   >
-                    Edit
+                    {isMobile ? <EditIcon fontSize="small" /> : 'Edit'}
                   </Button>
                 </Tooltip>
 
                 <Tooltip title="Print options">
                   <Button
                     onClick={() => setPrintDialogOpen(true)}
-                    startIcon={<PrintIcon />}
+                    startIcon={isMobile ? undefined : <PrintIcon />}
                     variant="outlined"
                     size="small"
                     sx={{
                       color: 'white',
                       borderColor: 'rgba(255,255,255,0.3)',
+                      fontSize: isMobile ? '0.75rem' : undefined,
+                      minWidth: isMobile ? 36 : undefined,
+                      px: isMobile ? 1 : undefined,
                       '&:hover': {
                         borderColor: 'white',
                         bgcolor: 'rgba(255,255,255,0.1)'
                       }
                     }}
                   >
-                    Print
+                    {isMobile ? <PrintIcon fontSize="small" /> : 'Print'}
                   </Button>
                 </Tooltip>
  
@@ -1052,46 +623,58 @@ export default function EnhancedInvoiceDetailPage() {
             )}
           </Box>
 
-          {/* Enhanced Status Chips */}
+          {/* Enhanced Status Chips — compact on mobile */}
           {!loading && invoice && (
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ gap: 0.5 }}>
               <Chip
-                label={`Status: ${invoice.status?.toUpperCase() || 'DRAFT'}`}
+                label={`${isMobile ? '' : 'Status: '}${invoice.status?.toUpperCase() || 'DRAFT'}`}
                 color={getStatusColor(invoice.status || 'draft') as any}
                 variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
                 sx={{ 
                   color: 'white', 
                   borderColor: 'rgba(255,255,255,0.3)',
-                  bgcolor: 'rgba(255,255,255,0.1)'
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  height: isMobile ? 24 : 32,
+                  '& .MuiChip-label': { fontSize: isMobile ? '0.7rem' : undefined }
                 }}
               />
               <Chip
-                label={`Payment: ${invoice.paymentStatus?.toUpperCase() || 'PENDING'}`}
+                label={`${isMobile ? '' : 'Payment: '}${invoice.paymentStatus?.toUpperCase() || 'PENDING'}`}
                 color={getPaymentStatusColor(invoice.paymentStatus || 'pending') as any}
                 variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
                 sx={{ 
                   color: 'white', 
                   borderColor: 'rgba(255,255,255,0.3)',
-                  bgcolor: 'rgba(255,255,255,0.1)'
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  height: isMobile ? 24 : 32,
+                  '& .MuiChip-label': { fontSize: isMobile ? '0.7rem' : undefined }
                 }}
               />
               <Chip
-                label={`Type: ${invoice.type?.toUpperCase() || 'SALES'}`}
+                label={`${isMobile ? '' : 'Type: '}${invoice.type?.toUpperCase() || 'SALES'}`}
                 variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
                 sx={{ 
                   color: 'white', 
                   borderColor: 'rgba(255,255,255,0.3)',
-                  bgcolor: 'rgba(255,255,255,0.1)'
+                  bgcolor: 'rgba(255,255,255,0.1)',
+                  height: isMobile ? 24 : 32,
+                  '& .MuiChip-label': { fontSize: isMobile ? '0.7rem' : undefined }
                 }}
               />
               {invoiceStats && (
                 <Chip
-                  label={`${invoiceStats.totalItems} Items`}
+                  label={isMobile ? `${invoiceStats.totalItems} items` : `${invoiceStats.totalItems} Items`}
                   variant="outlined"
+                  size={isMobile ? 'small' : 'medium'}
                   sx={{ 
                     color: 'white', 
                     borderColor: 'rgba(255,255,255,0.3)',
-                    bgcolor: 'rgba(255,255,255,0.1)'
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    height: isMobile ? 24 : 32,
+                    '& .MuiChip-label': { fontSize: isMobile ? '0.7rem' : undefined }
                   }}
                 />
               )}
@@ -1102,116 +685,106 @@ export default function EnhancedInvoiceDetailPage() {
     </Fade>
   );
 
-  // Enhanced overview with more metrics
-  const InvoiceOverview = () => (
-    <Fade in timeout={1000}>
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AccountBalanceIcon sx={{ mr: 1 }} />
-                <Typography variant="h6">Financial Summary</Typography>
-              </Box>
-              <Typography variant="h4" fontWeight="bold" gutterBottom>
-                ₹{invoice?.totalAmount?.toLocaleString() || '0'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Subtotal: ₹{invoice?.subtotal?.toLocaleString() || '0'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Discount: ₹{invoice?.totalDiscount?.toLocaleString() || '0'}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Balance: ₹{invoice?.balanceAmount?.toLocaleString() || '0'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+  // Enhanced overview with more metrics — compact on mobile
+  const InvoiceOverview = () => {
+    const totalAmt = invoice?.totalAmount || 0;
+    return (
+      <Fade in timeout={1000}>
+        <Grid container spacing={isMobile ? 1.5 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
+          <Grid item xs={6} md={3}>
+            <Card sx={{ height: '100%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <AccountBalanceIcon sx={{ mr: 1, fontSize: isMobile ? 16 : 24 }} />
+                  <Typography variant={isMobile ? "body2" : "h6"} sx={{ fontWeight: 600 }}>Financial Summary</Typography>
+                </Box>
+                <Typography variant={isMobile ? "h5" : "h4"} fontWeight="bold" gutterBottom>
+                  ₹{totalAmt.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
+                  Subtotal: ₹{invoice?.subtotal?.toLocaleString() || '0'}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
+                  Discount: ₹{invoice?.totalDiscount?.toLocaleString() || '0'}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
+                  Balance: ₹{invoice?.balanceAmount?.toLocaleString() || '0'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CalendarTodayIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Timeline</Typography>
-              </Box>
-              <Typography variant="body1" gutterBottom>
-                <strong>Invoice Date:</strong> {invoice?.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
-              </Typography>
-              {invoice?.dueDate && (
-                <Typography variant="body1" gutterBottom>
-                  <strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}
+          <Grid item xs={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CalendarTodayIcon sx={{ mr: 1, color: 'primary.main', fontSize: isMobile ? 16 : 24 }} />
+                  <Typography variant={isMobile ? "body2" : "h6"} sx={{ fontWeight: 600 }}>Timeline</Typography>
+                </Box>
+                <Typography variant="caption" display="block">
+                  <strong>Date:</strong> {invoice?.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
                 </Typography>
-              )}
-              <Typography variant="body2" color="text.secondary">
-                Created: {invoice?.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A'}
-              </Typography>
-              {invoice?.updatedAt && (
-                <Typography variant="body2" color="text.secondary">
-                  Updated: {new Date(invoice.updatedAt).toLocaleDateString()}
+                {invoice?.dueDate && (
+                  <Typography variant="caption" display="block">
+                    <strong>Due:</strong> {new Date(invoice.dueDate).toLocaleDateString()}
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Created: {invoice?.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A'}
                 </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <BusinessIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Party Details</Typography>
-              </Box>
-              <Typography variant="body1" fontWeight="bold" gutterBottom>
-                {invoice?.partyName || 'N/A'}
-              </Typography>
-              {invoice?.partyPhone && (
-                <Typography variant="body2" color="text.secondary">
-                  Phone: {invoice.partyPhone}
+          <Grid item xs={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <BusinessIcon sx={{ mr: 1, color: 'primary.main', fontSize: isMobile ? 16 : 24 }} />
+                  <Typography variant={isMobile ? "body2" : "h6"} sx={{ fontWeight: 600 }}>Party Details</Typography>
+                </Box>
+                <Typography variant="caption" fontWeight="bold" display="block">
+                  {invoice?.partyName || 'N/A'}
                 </Typography>
-              )}
-              {invoice?.partyEmail && (
-                <Typography variant="body2" color="text.secondary">
-                  Email: {invoice.partyEmail}
+                {invoice?.partyPhone && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Phone: {invoice.partyPhone}
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {invoice?.type === 'sales' ? 'Customer' : 'Supplier'}
                 </Typography>
-              )}
-              <Typography variant="body2" color="text.secondary">
-                {invoice?.type === 'sales' ? 'Customer' : 'Supplier'}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <AnalyticsIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Statistics</Typography>
-              </Box>
-              {invoiceStats && (
-                <>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Items:</strong> {invoiceStats.totalItems}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Quantity:</strong> {invoiceStats.totalQuantity}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Avg. Value:</strong> ₹{invoiceStats.averageItemValue.toFixed(2)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Discount:</strong> {invoiceStats.discountPercentage.toFixed(1)}%
-                  </Typography>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <Grid item xs={6} md={3}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <AnalyticsIcon sx={{ mr: 1, color: 'primary.main', fontSize: isMobile ? 16 : 24 }} />
+                  <Typography variant={isMobile ? "body2" : "h6"} sx={{ fontWeight: 600 }}>Statistics</Typography>
+                </Box>
+                {invoiceStats && (
+                  <>
+                    <Typography variant="caption" display="block">
+                      <strong>Items:</strong> {invoiceStats.totalItems}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      <strong>Qty:</strong> {invoiceStats.totalQuantity}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      <strong>Avg:</strong> ₹{invoiceStats.averageItemValue.toFixed(2)}
+                    </Typography>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-    </Fade>
-  );
+      </Fade>
+    );
+  };
 
   // Enhanced tabbed content
   const TabbedContent = () => (
